@@ -1,0 +1,179 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum GradeStatus {
+  ACTIVE
+  SOON
+}
+
+enum LessonCardType {
+  MAIN_IDEA
+  EXPLANATION
+  ILLUSTRATION
+  CONNECTION
+  COMMON_MISTAKE
+  MINI_QUESTION
+}
+
+model User {
+  id         String   @id @default(cuid())
+  telegramId String   @unique
+  firstName  String
+  username   String?
+  createdAt  DateTime @default(now())
+
+  lessonProgress  UserLessonProgress[]
+  mistakes        UserMistake[]
+  repetitionItems RepetitionItem[]
+  streak          UserStreak?
+}
+
+model Grade {
+  id     String      @id @default(cuid())
+  number Int         @unique
+  status GradeStatus @default(SOON)
+
+  topicLinks TopicGradeLink[]
+}
+
+model CrossTopic {
+  id       String @id @default(cuid())
+  name     String
+  icon     String
+  colorKey String
+  order    Int    @default(0)
+
+  gradeLinks      TopicGradeLink[]
+  connectionsFrom TopicConnection[] @relation("FromTopic")
+  connectionsTo   TopicConnection[] @relation("ToTopic")
+}
+
+// Связывает сквозную тему с конкретным классом — таймлайн на экране "Тема"
+model TopicGradeLink {
+  id           String     @id @default(cuid())
+  crossTopicId String
+  crossTopic   CrossTopic @relation(fields: [crossTopicId], references: [id])
+  gradeId      String
+  grade        Grade      @relation(fields: [gradeId], references: [id])
+  subtitle     String
+  order        Int        @default(0)
+
+  lessons Lesson[]
+
+  @@unique([crossTopicId, gradeId])
+}
+
+model Lesson {
+  id               String         @id @default(cuid())
+  topicGradeLinkId String
+  topicGradeLink   TopicGradeLink @relation(fields: [topicGradeLinkId], references: [id])
+  title            String
+  order            Int            @default(0)
+
+  cards           LessonCard[]
+  questions       Question[]
+  progress        UserLessonProgress[]
+  repetitionItems RepetitionItem[]
+}
+
+model LessonCard {
+  id       String         @id @default(cuid())
+  lessonId String
+  lesson   Lesson         @relation(fields: [lessonId], references: [id])
+  type     LessonCardType
+  order    Int
+  title    String?
+  content  String
+  svgKey   String?
+}
+
+// Связи между темами — для карточек "Связь с другой темой" и будущей карты знаний
+model TopicConnection {
+  id          String     @id @default(cuid())
+  fromTopicId String
+  fromTopic   CrossTopic @relation("FromTopic", fields: [fromTopicId], references: [id])
+  toTopicId   String
+  toTopic     CrossTopic @relation("ToTopic", fields: [toTopicId], references: [id])
+  description String
+}
+
+model Question {
+  id       String @id @default(cuid())
+  lessonId String
+  lesson   Lesson @relation(fields: [lessonId], references: [id])
+  text     String
+  order    Int
+
+  options  QuestionOption[]
+  hints    Hint[]
+  mistakes UserMistake[]
+}
+
+model QuestionOption {
+  id         String   @id @default(cuid())
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id])
+  text       String
+  isCorrect  Boolean  @default(false)
+  order      Int
+}
+
+model Hint {
+  id         String   @id @default(cuid())
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id])
+  order      Int
+  text       String
+}
+
+model UserLessonProgress {
+  id               String    @id @default(cuid())
+  userId           String
+  user             User      @relation(fields: [userId], references: [id])
+  lessonId         String
+  lesson           Lesson    @relation(fields: [lessonId], references: [id])
+  currentCardIndex Int       @default(0)
+  completed        Boolean   @default(false)
+  completedAt      DateTime?
+  updatedAt        DateTime  @updatedAt
+
+  @@unique([userId, lessonId])
+}
+
+model UserMistake {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  questionId  String
+  question    Question @relation(fields: [questionId], references: [id])
+  timesWrong  Int      @default(0)
+  lastWrongAt DateTime @default(now())
+
+  @@unique([userId, questionId])
+}
+
+// Простое интервальное повторение (Leitner): успех -> intervalDays удваивается, ошибка -> сброс на 1
+model RepetitionItem {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  lessonId     String
+  lesson       Lesson   @relation(fields: [lessonId], references: [id])
+  dueAt        DateTime
+  intervalDays Int      @default(1)
+
+  @@unique([userId, lessonId])
+}
+
+model UserStreak {
+  id             String    @id @default(cuid())
+  userId         String    @unique
+  user           User      @relation(fields: [userId], references: [id])
+  currentStreak  Int       @default(0)
+  lastActiveDate DateTime?
+}
