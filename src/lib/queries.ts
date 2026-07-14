@@ -268,3 +268,52 @@ export async function getHomeSummary(userId: string | null) {
 
   return { continueLesson, mistakesCount, dueTodayCount, overallProgress };
 }
+
+// ---- Микро-уроки (сырые карточки из параграфов учебника, см. prisma/seed-microlessons.ts) ----
+
+export async function getMicroLessonGrades() {
+  const rows = await prisma.microLesson.findMany({ select: { grade: true } });
+  const counts = new Map<number, number>();
+  for (const row of rows) counts.set(row.grade, (counts.get(row.grade) ?? 0) + 1);
+  return Array.from(counts.entries())
+    .map(([grade, count]) => ({ grade, count }))
+    .sort((a, b) => a.grade - b.grade);
+}
+
+export async function getMicroLessonsByGrade(grade: number) {
+  return prisma.microLesson.findMany({
+    where: { grade },
+    orderBy: { order: "asc" },
+    select: { id: true, order: true, title: true },
+  });
+}
+
+export async function getMicroLessonDetail(grade: number, order: number) {
+  const lesson = await prisma.microLesson.findUnique({
+    where: { grade_order: { grade, order } },
+    include: {
+      questions: {
+        include: {
+          options: { orderBy: { order: "asc" } },
+          hints: { orderBy: { level: "asc" } },
+        },
+      },
+    },
+  });
+  if (!lesson) return null;
+
+  const [prev, next] = await Promise.all([
+    prisma.microLesson.findFirst({
+      where: { grade, order: { lt: order } },
+      orderBy: { order: "desc" },
+      select: { order: true },
+    }),
+    prisma.microLesson.findFirst({
+      where: { grade, order: { gt: order } },
+      orderBy: { order: "asc" },
+      select: { order: true },
+    }),
+  ]);
+
+  return { lesson, prevOrder: prev?.order ?? null, nextOrder: next?.order ?? null };
+}

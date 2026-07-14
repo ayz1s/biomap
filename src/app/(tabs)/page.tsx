@@ -11,6 +11,7 @@ import {
   LayoutGrid,
   ClipboardCheck,
   Book,
+  Sparkles,
 } from "lucide-react";
 import { fetchJson } from "@/lib/api";
 import { useAppStore } from "@/store/useAppStore";
@@ -95,6 +96,7 @@ export default function HomePage() {
         <div className="grid grid-cols-4 gap-3 text-center">
           <QuickAccessLink href="/topics" icon={BookOpen} label="Темы" />
           <QuickAccessLink href="/classes" icon={LayoutGrid} label="По классам" />
+          <QuickAccessLink href="/microlessons" icon={Sparkles} label="Микроуроки" />
           <QuickAccessLink icon={ClipboardCheck} label="Milliy тесты" soon />
           <QuickAccessLink icon={Book} label="Справочник" soon />
         </div>
