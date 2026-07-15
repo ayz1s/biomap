@@ -3,7 +3,7 @@
 import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, ArrowRight, Lightbulb, AlertTriangle, Link2, HelpCircle, Workflow } from "lucide-react";
+import { ArrowLeft, ArrowRight, Lightbulb, AlertTriangle, Link2, HelpCircle } from "lucide-react";
 import { fetchJson } from "@/lib/api";
 
 type CardType =
@@ -124,10 +124,11 @@ export default function LessonPage({ params }: { params: Promise<{ lessonId: str
   );
 }
 
-// Пилюли-цепочка читаема только когда узлы короткие: это визуализация для
-// компактных схем вида "Корень → Стебель → Лист", а не для плотного текста
-// с скобками и несколькими предложениями — тот рендерится как обычная карточка.
-const MAX_CHAIN_NODE_LENGTH = 36;
+// Каждый " → "-сегмент схемы — свой блок в цепочке. Короткие узлы (как в
+// "Корень → Стебель → Лист") получаются компактными пилюлями по центру;
+// плотные конспект-сегменты в скобках/с предложениями просто переносятся
+// по словам внутри своего блока, а не обрезаются за краем экрана.
+const SHORT_NODE_LENGTH = 40;
 
 function LessonCardView({ card }: { card: LessonCard }) {
   if (card.type === "ILLUSTRATION") {
@@ -135,24 +136,26 @@ function LessonCardView({ card }: { card: LessonCard }) {
       .split(" → ")
       .map((s) => s.trim())
       .filter(Boolean);
-    const isCleanChain = steps.length > 1 && steps.every((s) => s.length <= MAX_CHAIN_NODE_LENGTH);
 
-    if (isCleanChain) {
-      return (
-        <div className="flex w-full flex-col items-center gap-2">
-          {steps.map((step, i) => (
+    return (
+      <div className="flex w-full flex-col items-center gap-2">
+        {steps.map((step, i) => {
+          const isShort = step.length <= SHORT_NODE_LENGTH;
+          return (
             <div key={i} className="flex w-full flex-col items-center gap-2">
-              <div className="max-w-full break-words rounded-xl bg-secondary px-4 py-2 text-center font-medium text-secondary-foreground">
+              <div
+                className={`max-w-[90%] break-words rounded-xl bg-secondary px-4 py-2 text-secondary-foreground ${
+                  isShort ? "text-center font-medium" : "text-left leading-relaxed"
+                }`}
+              >
                 {step}
               </div>
               {i < steps.length - 1 && <div className="h-6 w-px bg-border" />}
             </div>
-          ))}
-        </div>
-      );
-    }
-
-    return <PlainCard icon={Workflow} className="bg-secondary text-secondary-foreground" card={card} />;
+          );
+        })}
+      </div>
+    );
   }
 
   const style: Record<Exclude<CardType, "ILLUSTRATION">, { icon: typeof Lightbulb; className: string }> = {
