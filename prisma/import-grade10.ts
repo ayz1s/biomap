@@ -6,7 +6,7 @@ type Klass10Entry = {
   order: number;
   title: string;
   suit: string;
-  scheme: string;
+  scheme: string | null;
   connections: string;
   common_mistake: string;
   mini_question: { q: string; options: string[]; answer: string };
@@ -73,7 +73,31 @@ export async function importGrade10(prisma: PrismaClient) {
   }
 
   const linkIds = [...linkByTopic.values()].map((l) => l.id);
-  await prisma.lesson.deleteMany({ where: { topicGradeLinkId: { in: linkIds } } });
+  const oldLessons = await prisma.lesson.findMany({
+    where: { topicGradeLinkId: { in: linkIds } },
+    select: { id: true },
+  });
+  const oldLessonIds = oldLessons.map((l) => l.id);
+
+  if (oldLessonIds.length > 0) {
+    const oldQuestions = await prisma.question.findMany({
+      where: { lessonId: { in: oldLessonIds } },
+      select: { id: true },
+    });
+    const oldQuestionIds = oldQuestions.map((q) => q.id);
+
+    // Удаляем в порядке зависимостей: сначала записи о прогрессе/ошибках
+    // пользователей по этим конкретным урокам, затем сам контент урока.
+    // Другие уроки, темы и пользовательские данные не затрагиваются.
+    await prisma.userMistake.deleteMany({ where: { questionId: { in: oldQuestionIds } } });
+    await prisma.hint.deleteMany({ where: { questionId: { in: oldQuestionIds } } });
+    await prisma.questionOption.deleteMany({ where: { questionId: { in: oldQuestionIds } } });
+    await prisma.question.deleteMany({ where: { lessonId: { in: oldLessonIds } } });
+    await prisma.userLessonProgress.deleteMany({ where: { lessonId: { in: oldLessonIds } } });
+    await prisma.repetitionItem.deleteMany({ where: { lessonId: { in: oldLessonIds } } });
+    await prisma.lessonCard.deleteMany({ where: { lessonId: { in: oldLessonIds } } });
+    await prisma.lesson.deleteMany({ where: { id: { in: oldLessonIds } } });
+  }
 
   const entries = (klass10 as Klass10Entry[]).slice().sort((a, b) => a.order - b.order);
   const lessonOrderByTopic = new Map<string, number>();
@@ -92,7 +116,7 @@ export async function importGrade10(prisma: PrismaClient) {
         cards: {
           create: [
             { type: "EXPLANATION", order: 0, content: entry.suit },
-            { type: "ILLUSTRATION", order: 1, content: entry.scheme },
+            ...(entry.scheme ? [{ type: "ILLUSTRATION" as const, order: 1, content: entry.scheme }] : []),
             { type: "CONNECTION", order: 2, content: entry.connections },
             { type: "COMMON_MISTAKE", order: 3, content: entry.common_mistake },
             { type: "MINI_QUESTION", order: 4, content: entry.mini_question.q },

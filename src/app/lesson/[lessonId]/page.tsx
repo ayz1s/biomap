@@ -183,7 +183,7 @@ function PlainCard({
     <div className={`flex w-full flex-col gap-3 rounded-2xl p-5 ${className}`}>
       <Icon size={22} />
       {card.title && <p className="font-semibold">{card.title}</p>}
-      <p className="leading-relaxed break-words">{card.content}</p>
+      <p className="whitespace-pre-line break-words leading-relaxed">{card.content}</p>
     </div>
   );
 }
