@@ -1,11 +1,13 @@
 import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { importGrade10 } from "./import-grade10";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
 const prisma = new PrismaClient({ adapter });
 
 const GRADES = [5, 6, 7, 8, 9, 10, 11];
+const ACTIVE_GRADES = [5, 10];
 
 const TOPICS = [
   {
@@ -121,7 +123,7 @@ async function main() {
   const gradeByNumber = new Map<number, { id: string }>();
   for (const number of GRADES) {
     const grade = await prisma.grade.create({
-      data: { number, status: number === 5 ? "ACTIVE" : "SOON" },
+      data: { number, status: ACTIVE_GRADES.includes(number) ? "ACTIVE" : "SOON" },
     });
     gradeByNumber.set(number, grade);
   }
@@ -146,6 +148,9 @@ async function main() {
       });
     }
   }
+
+  console.log("10 класс: импорт параграфов учебника...");
+  await importGrade10(prisma);
 
   console.log("Связь тем...");
   await prisma.topicConnection.create({

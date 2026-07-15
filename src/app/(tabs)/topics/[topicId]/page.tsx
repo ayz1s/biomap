@@ -35,7 +35,12 @@ export default function TopicDetailPage({
   const [selectedGrade, setSelectedGrade] = useState<number | null>(null);
   const activeGrade = useMemo(() => {
     if (selectedGrade) return selectedGrade;
-    return topic?.timeline.find((t) => t.status === "ACTIVE")?.gradeNumber ?? topic?.timeline[0]?.gradeNumber ?? null;
+    return (
+      topic?.timeline.find((t) => t.status === "ACTIVE" && t.firstLessonId)?.gradeNumber ??
+      topic?.timeline.find((t) => t.status === "ACTIVE")?.gradeNumber ??
+      topic?.timeline[0]?.gradeNumber ??
+      null
+    );
   }, [selectedGrade, topic]);
 
   const selectedEntry = topic?.timeline.find((t) => t.gradeNumber === activeGrade);
