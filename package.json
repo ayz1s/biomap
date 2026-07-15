@@ -9,8 +9,7 @@
     "lint": "eslint",
     "postinstall": "prisma generate",
     "db:studio": "prisma studio",
-    "db:migrate": "prisma migrate dev",
-    "seed:microlessons": "tsx prisma/seed-microlessons.ts"
+    "db:migrate": "prisma migrate dev"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
