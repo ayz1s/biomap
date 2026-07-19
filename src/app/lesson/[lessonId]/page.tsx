@@ -3,7 +3,16 @@
 import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, ArrowRight, Lightbulb, AlertTriangle, Link2, HelpCircle } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Lightbulb,
+  AlertTriangle,
+  Link2,
+  HelpCircle,
+  BookOpen,
+  ListChecks,
+} from "lucide-react";
 import { fetchJson } from "@/lib/api";
 
 type CardType =
@@ -12,13 +21,16 @@ type CardType =
   | "ILLUSTRATION"
   | "CONNECTION"
   | "COMMON_MISTAKE"
-  | "MINI_QUESTION";
+  | "MINI_QUESTION"
+  | "KEY_TERMS"
+  | "SUMMARY";
 
 interface LessonCard {
   id: string;
   type: CardType;
   title: string | null;
   content: string;
+  caption: string | null;
 }
 
 interface LessonData {
@@ -27,7 +39,7 @@ interface LessonData {
 }
 
 const TABS: { types: CardType[]; label: string }[] = [
-  { types: ["MAIN_IDEA", "EXPLANATION", "CONNECTION", "COMMON_MISTAKE"], label: "Теория" },
+  { types: ["MAIN_IDEA", "EXPLANATION", "CONNECTION", "COMMON_MISTAKE", "KEY_TERMS", "SUMMARY"], label: "Теория" },
   { types: ["ILLUSTRATION"], label: "Схемы" },
   { types: ["MINI_QUESTION"], label: "Вопросы" },
 ];
@@ -130,6 +142,9 @@ export default function LessonPage({ params }: { params: Promise<{ lessonId: str
 // по словам внутри своего блока, а не обрезаются за краем экрана.
 const SHORT_NODE_LENGTH = 40;
 
+// Каждый " → "-сегмент — свой шаг цепочки; внутри шага " | " означает
+// параллельные, а не последовательные узлы (ветвление), и рендерится рядом,
+// а не как сырой символ "|" на экране.
 function LessonCardView({ card }: { card: LessonCard }) {
   if (card.type === "ILLUSTRATION") {
     const steps = card.content
@@ -140,20 +155,47 @@ function LessonCardView({ card }: { card: LessonCard }) {
     return (
       <div className="flex w-full flex-col items-center gap-2">
         {steps.map((step, i) => {
-          const isShort = step.length <= SHORT_NODE_LENGTH;
+          const branches = step
+            .split(" | ")
+            .map((b) => b.trim())
+            .filter(Boolean);
+          const isParallel = branches.length > 1;
           return (
             <div key={i} className="flex w-full flex-col items-center gap-2">
-              <div
-                className={`max-w-[90%] break-words rounded-xl bg-secondary px-4 py-2 text-secondary-foreground ${
-                  isShort ? "text-center font-medium" : "text-left leading-relaxed"
-                }`}
-              >
-                {step}
-              </div>
+              {isParallel ? (
+                <div className="flex w-full flex-wrap justify-center gap-2">
+                  {branches.map((branch, j) => {
+                    const isShort = branch.length <= SHORT_NODE_LENGTH;
+                    return (
+                      <div
+                        key={j}
+                        className={`max-w-[45%] break-words rounded-xl bg-secondary px-4 py-2 text-secondary-foreground ${
+                          isShort ? "text-center font-medium" : "text-left leading-relaxed"
+                        }`}
+                      >
+                        {branch}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div
+                  className={`max-w-[90%] break-words rounded-xl bg-secondary px-4 py-2 text-secondary-foreground ${
+                    step.length <= SHORT_NODE_LENGTH ? "text-center font-medium" : "text-left leading-relaxed"
+                  }`}
+                >
+                  {step}
+                </div>
+              )}
               {i < steps.length - 1 && <div className="h-6 w-px bg-border" />}
             </div>
           );
         })}
+        {card.caption && (
+          <p className="mt-2 max-w-[95%] whitespace-pre-line break-words text-center text-sm text-muted-foreground">
+            {card.caption}
+          </p>
+        )}
       </div>
     );
   }
@@ -164,6 +206,8 @@ function LessonCardView({ card }: { card: LessonCard }) {
     CONNECTION: { icon: Link2, className: "bg-secondary text-secondary-foreground" },
     COMMON_MISTAKE: { icon: AlertTriangle, className: "bg-amber-50 text-amber-900" },
     MINI_QUESTION: { icon: HelpCircle, className: "bg-card text-card-foreground ring-1 ring-foreground/10" },
+    KEY_TERMS: { icon: BookOpen, className: "bg-card text-card-foreground ring-1 ring-foreground/10" },
+    SUMMARY: { icon: ListChecks, className: "bg-secondary text-secondary-foreground" },
   };
   const { icon, className } = style[card.type];
 

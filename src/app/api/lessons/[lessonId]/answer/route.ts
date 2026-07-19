@@ -7,24 +7,28 @@ export async function POST(req: Request) {
   const userId = await getCurrentUserId();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { questionId, optionId } = (await req.json()) as {
+  const { questionId, optionIds } = (await req.json()) as {
     questionId: string;
-    optionId: string;
+    optionIds: string[];
   };
 
-  const option = await prisma.questionOption.findUnique({ where: { id: optionId } });
-  if (!option || option.questionId !== questionId) {
+  const options = await prisma.questionOption.findMany({ where: { questionId } });
+  const selected = options.filter((o) => optionIds.includes(o.id));
+  if (selected.length !== optionIds.length) {
     return NextResponse.json({ error: "Invalid option" }, { status: 400 });
   }
 
-  await recordAnswer(userId, questionId, option.isCorrect);
+  const correctIds = new Set(options.filter((o) => o.isCorrect).map((o) => o.id));
+  const selectedIds = new Set(optionIds);
+  const isCorrect =
+    correctIds.size === selectedIds.size && [...correctIds].every((id) => selectedIds.has(id));
 
-  const correctOption = option.isCorrect
-    ? option
-    : await prisma.questionOption.findFirst({ where: { questionId, isCorrect: true } });
+  await recordAnswer(userId, questionId, isCorrect);
+
+  const correctOptions = options.filter((o) => o.isCorrect);
 
   return NextResponse.json({
-    correct: option.isCorrect,
-    correctOption: correctOption && { id: correctOption.id, text: correctOption.text },
+    correct: isCorrect,
+    correctOptions: correctOptions.map((o) => ({ id: o.id, text: o.text })),
   });
 }

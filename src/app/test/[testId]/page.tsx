@@ -20,6 +20,8 @@ interface Hint {
 interface Question {
   id: string;
   text: string;
+  type: "SINGLE_CHOICE" | "MULTIPLE_CHOICE";
+  note: string | null;
   options: Option[];
   hints: Hint[];
 }
@@ -38,12 +40,12 @@ export default function TestPage({ params }: { params: Promise<{ testId: string 
   });
 
   const [qIndex, setQIndex] = useState(0);
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string[]>([]);
   const [mode, setMode] = useState<Mode>("question");
   const [attempts, setAttempts] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
   const [finished, setFinished] = useState(false);
-  const [correctOptionText, setCorrectOptionText] = useState<string | null>(null);
+  const [correctOptionsText, setCorrectOptionsText] = useState<string[]>([]);
 
   if (!data) return null;
   const questions = data.lesson.questions;
@@ -66,15 +68,25 @@ export default function TestPage({ params }: { params: Promise<{ testId: string 
     );
   }
 
+  function toggleOption(optionId: string) {
+    if (question.type === "MULTIPLE_CHOICE") {
+      setSelected((prev) =>
+        prev.includes(optionId) ? prev.filter((id) => id !== optionId) : [...prev, optionId],
+      );
+    } else {
+      setSelected([optionId]);
+    }
+  }
+
   async function submit() {
-    if (!selected) return;
-    const { correct, correctOption } = await fetchJson<{
+    if (selected.length === 0) return;
+    const { correct, correctOptions } = await fetchJson<{
       correct: boolean;
-      correctOption?: { id: string; text: string };
+      correctOptions: { id: string; text: string }[];
     }>(`/api/lessons/${lessonId}/answer`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ questionId: question.id, optionId: selected }),
+      body: JSON.stringify({ questionId: question.id, optionIds: selected }),
     });
 
     if (correct) {
@@ -86,7 +98,7 @@ export default function TestPage({ params }: { params: Promise<{ testId: string 
     const nextAttempts = attempts + 1;
     setAttempts(nextAttempts);
     if (nextAttempts > question.hints.length) {
-      setCorrectOptionText(correctOption?.text ?? null);
+      setCorrectOptionsText(correctOptions.map((o) => o.text));
       setMode("explanation");
     } else {
       setMode("hint");
@@ -100,9 +112,9 @@ export default function TestPage({ params }: { params: Promise<{ testId: string 
       return;
     }
     setQIndex((i) => i + 1);
-    setSelected(null);
+    setSelected([]);
     setAttempts(0);
-    setCorrectOptionText(null);
+    setCorrectOptionsText([]);
     setMode("question");
   }
 
@@ -125,13 +137,16 @@ export default function TestPage({ params }: { params: Promise<{ testId: string 
       {mode === "question" && (
         <>
           <p className="text-lg font-medium">{question.text}</p>
+          {question.type === "MULTIPLE_CHOICE" && (
+            <p className="text-sm text-muted-foreground">Выберите все подходящие варианты</p>
+          )}
           <div className="flex flex-col gap-2">
             {question.options.map((opt, i) => (
               <button
                 key={opt.id}
-                onClick={() => setSelected(opt.id)}
+                onClick={() => toggleOption(opt.id)}
                 className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-left ${
-                  selected === opt.id
+                  selected.includes(opt.id)
                     ? "border-primary bg-secondary"
                     : "border-border bg-card"
                 }`}
@@ -147,7 +162,7 @@ export default function TestPage({ params }: { params: Promise<{ testId: string 
             </button>
             <button
               onClick={submit}
-              disabled={!selected}
+              disabled={selected.length === 0}
               className="flex h-11 items-center rounded-xl bg-primary px-6 font-medium text-primary-foreground disabled:opacity-40"
             >
               Ответить
@@ -161,6 +176,12 @@ export default function TestPage({ params }: { params: Promise<{ testId: string 
           <div className="flex items-center gap-2 rounded-xl bg-secondary p-4 text-secondary-foreground">
             <Check size={20} /> Верно!
           </div>
+          {question.note && (
+            <div>
+              <p className="mb-1 font-medium">Объяснение</p>
+              <p className="text-muted-foreground">{question.note}</p>
+            </div>
+          )}
           <button
             onClick={goToNextQuestion}
             className="mt-auto mb-4 flex h-11 items-center justify-center rounded-xl bg-primary font-medium text-primary-foreground"
@@ -188,7 +209,13 @@ export default function TestPage({ params }: { params: Promise<{ testId: string 
       {mode === "explanation" && (
         <div className="flex flex-1 flex-col gap-4">
           <p className="font-medium">Правильный ответ:</p>
-          <p className="text-lg">{correctOptionText}</p>
+          <p className="text-lg">{correctOptionsText.join(", ")}</p>
+          {question.note && (
+            <div>
+              <p className="mb-1 font-medium">Объяснение</p>
+              <p className="text-muted-foreground">{question.note}</p>
+            </div>
+          )}
           <button
             onClick={goToNextQuestion}
             className="mt-auto mb-4 flex h-11 items-center justify-center rounded-xl bg-primary font-medium text-primary-foreground"

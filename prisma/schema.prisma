@@ -18,6 +18,13 @@ enum LessonCardType {
   CONNECTION
   COMMON_MISTAKE
   MINI_QUESTION
+  KEY_TERMS
+  SUMMARY
+}
+
+enum QuestionType {
+  SINGLE_CHOICE
+  MULTIPLE_CHOICE
 }
 
 model User {
@@ -74,6 +81,9 @@ model Lesson {
   topicGradeLink   TopicGradeLink @relation(fields: [topicGradeLinkId], references: [id])
   title            String
   order            Int            @default(0)
+  // Feature-флаг: пока false, урок не отдаётся ни одним API-роутом и не всплывает
+  // ни в одном списке — не только скрыт из UI, но и недоступен по прямой ссылке.
+  published        Boolean        @default(false)
 
   cards           LessonCard[]
   questions       Question[]
@@ -90,6 +100,11 @@ model LessonCard {
   title    String?
   content  String
   svgKey   String?
+  // Только для type=ILLUSTRATION со схемами: подпись/оговорка под схемой.
+  caption      String?
+  // Служебная трассировка к источнику — никогда не сериализуется в клиентский API-ответ.
+  canonicalId  String?
+  sourcePages  String?
 }
 
 // Связи между темами — для карточек "Связь с другой темой" и будущей карты знаний
@@ -103,12 +118,17 @@ model TopicConnection {
 }
 
 model Question {
-  id       String  @id @default(cuid())
+  id       String       @id @default(cuid())
   lessonId String
-  lesson   Lesson  @relation(fields: [lessonId], references: [id])
+  lesson   Lesson       @relation(fields: [lessonId], references: [id])
   text     String
   order    Int
+  type     QuestionType @default(SINGLE_CHOICE)
+  // Показывается ученику после ответа как «Объяснение».
   note     String?
+  // Служебная трассировка к источнику — никогда не сериализуется в клиентский API-ответ.
+  canonicalId String?
+  sourcePages String?
 
   options  QuestionOption[]
   hints    Hint[]

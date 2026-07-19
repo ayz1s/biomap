@@ -7,7 +7,10 @@ export async function getTopicsWithProgress(userId: string | null) {
     include: {
       gradeLinks: {
         orderBy: { order: "asc" },
-        include: { grade: true, lessons: { include: { cards: true } } },
+        include: {
+          grade: true,
+          lessons: { where: { published: true }, include: { cards: true } },
+        },
       },
     },
   });
@@ -50,7 +53,10 @@ export async function getTopicDetail(topicId: string, userId: string | null) {
     include: {
       gradeLinks: {
         orderBy: { order: "asc" },
-        include: { grade: true, lessons: { orderBy: { order: "asc" } } },
+        include: {
+          grade: true,
+          lessons: { where: { published: true }, orderBy: { order: "asc" } },
+        },
       },
       connectionsFrom: { include: { toTopic: true } },
     },
@@ -102,7 +108,7 @@ export async function getLessonWithProgress(lessonId: string, userId: string | n
       topicGradeLink: { include: { crossTopic: true, grade: true } },
     },
   });
-  if (!lesson) return null;
+  if (!lesson || !lesson.published) return null;
 
   const progress = userId
     ? await prisma.userLessonProgress.findUnique({
@@ -220,7 +226,7 @@ export async function getRepetitionSchedule(userId: string) {
 export async function getHomeSummary(userId: string | null) {
   const inProgress = userId
     ? await prisma.userLessonProgress.findFirst({
-        where: { userId, completed: false },
+        where: { userId, completed: false, lesson: { published: true } },
         orderBy: { updatedAt: "desc" },
         include: { lesson: { include: { cards: true } } },
       })
@@ -229,6 +235,7 @@ export async function getHomeSummary(userId: string | null) {
   const fallbackLesson = inProgress
     ? null
     : await prisma.lesson.findFirst({
+        where: { published: true },
         orderBy: { order: "asc" },
         include: { cards: true },
       });
@@ -259,9 +266,11 @@ export async function getHomeSummary(userId: string | null) {
     ? await prisma.repetitionItem.count({ where: { userId, dueAt: { lte: today } } })
     : 0;
 
-  const totalLessons = await prisma.lesson.count();
+  const totalLessons = await prisma.lesson.count({ where: { published: true } });
   const completedLessons = userId
-    ? await prisma.userLessonProgress.count({ where: { userId, completed: true } })
+    ? await prisma.userLessonProgress.count({
+        where: { userId, completed: true, lesson: { published: true } },
+      })
     : 0;
   const overallProgress =
     totalLessons === 0 ? 0 : Math.round((completedLessons / totalLessons) * 100);
