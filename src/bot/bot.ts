@@ -64,12 +64,12 @@ bot.command("start", async (ctx) => {
 
   await ctx.reply(WELCOME);
 
-  if (user.registrationStep === "DONE") {
-    await ctx.reply(
-      `Ты уже зарегистрирован(а) 🙌\n👤 Имя: ${user.firstName}\n📍 Область: ${
-        user.region ? regionLabel(user.region) : "—"
-      }`,
-    );
+  // Источник истины — region, а не registrationStep: у пользователей, заведённых
+  // через Mini App (telegram-auth upsert), step по умолчанию DONE, а region пуст.
+  // Ориентируясь только на step, бот считал их зарегистрированными и никогда не
+  // спрашивал область.
+  if (user.region) {
+    await ctx.reply(`Ты уже зарегистрирован(а) 🙌\n👤 Имя: ${user.firstName}\n📍 Область: ${regionLabel(user.region)}`);
     return;
   }
 
@@ -78,7 +78,7 @@ bot.command("start", async (ctx) => {
     return;
   }
 
-  // NAME или AWAITING_NAME_INPUT — в обоих случаях начинаем/повторяем с подтверждения имени
+  // NAME, AWAITING_NAME_INPUT или унаследованный DONE без region — начинаем/повторяем с подтверждения имени
   await askNameConfirm(ctx, user.firstName);
 });
 
