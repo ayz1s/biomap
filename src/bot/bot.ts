@@ -1,4 +1,4 @@
-import { Bot, InlineKeyboard, type Context } from "grammy";
+import { Bot, InlineKeyboard, Keyboard, type Context } from "grammy";
 import { prisma } from "@/lib/prisma";
 import { REGIONS, regionLabel, isRegionCode } from "./regions";
 
@@ -37,6 +37,17 @@ async function askRegion(ctx: Context) {
   await ctx.reply("Из какой ты области?", { reply_markup: regionKeyboard() });
 }
 
+// Обычная (не inline) клавиатура с web_app-кнопкой: в отличие от инлайн-кнопки
+// в тексте сообщения или мелкой кнопки в меню бота, она закреплена прямо над
+// полем ввода и видна всегда — абитуриенту не нужно её искать.
+function openAppKeyboard() {
+  // Фолбэк на известный прод-домен: переменная окружения ещё не добавлена в
+  // Vercel (не наш доступ), а без неё кнопка молча пропадала бы — как раз то,
+  // что нужно убрать.
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://biomap-zeta.vercel.app";
+  return new Keyboard().webApp("🚀 Открыть BioMap", appUrl).resized().persistent();
+}
+
 // Кнопки на уже отправленном сообщении убираем best-effort: сообщение могло
 // устареть (> 48ч) или уже быть отредактировано — это не должно ронять хендлер.
 async function clearKeyboard(ctx: Context) {
@@ -69,7 +80,10 @@ bot.command("start", async (ctx) => {
   // Ориентируясь только на step, бот считал их зарегистрированными и никогда не
   // спрашивал область.
   if (user.region) {
-    await ctx.reply(`Ты уже зарегистрирован(а) 🙌\n👤 Имя: ${user.firstName}\n📍 Область: ${regionLabel(user.region)}`);
+    await ctx.reply(
+      `Ты уже зарегистрирован(а) 🙌\n👤 Имя: ${user.firstName}\n📍 Область: ${regionLabel(user.region)}`,
+      { reply_markup: openAppKeyboard() },
+    );
     return;
   }
 
@@ -116,12 +130,11 @@ bot.callbackQuery(/^region:(.+)$/, async (ctx) => {
   await ctx.answerCallbackQuery();
   await clearKeyboard(ctx);
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
   await ctx.reply(
     `Регистрация завершена ✅\n\n👤 Имя: ${user.firstName}\n📍 Область: ${regionLabel(
       code,
-    )}\n\nМожно начинать готовиться!`,
-    appUrl ? { reply_markup: new InlineKeyboard().webApp("🚀 Открыть BioMap", appUrl) } : undefined,
+    )}\n\nМожно начинать готовиться! Кнопка входа теперь всегда под рукой внизу 👇`,
+    { reply_markup: openAppKeyboard() },
   );
 });
 
