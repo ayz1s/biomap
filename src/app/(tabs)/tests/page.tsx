@@ -37,7 +37,7 @@ export default function TestsPage() {
           <Link
             key={topic.id}
             href={`/test/${topic.firstLessonId}`}
-            className="flex items-center gap-3 rounded-xl bg-card p-3 ring-1 ring-foreground/10"
+            className="flex items-center gap-3 rounded-xl bg-card p-3 ring-1 ring-foreground/15"
           >
             <TopicIcon icon={topic.icon} colorKey={topic.colorKey} />
             <span className="flex-1 font-medium">{topic.name}</span>

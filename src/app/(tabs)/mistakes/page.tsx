@@ -37,7 +37,7 @@ export default function MistakesPage() {
           {topics.map((t) => {
             const percent = t.totalAttempts === 0 ? 0 : Math.round((t.wrongCount / t.totalAttempts) * 100);
             return (
-              <div key={t.topicName} className="flex items-center justify-between rounded-xl bg-card p-3 ring-1 ring-foreground/10">
+              <div key={t.topicName} className="flex items-center justify-between rounded-xl bg-card p-3 ring-1 ring-foreground/15">
                 <div>
                   <p className="font-medium">{t.topicName}</p>
                   <p className="text-sm text-muted-foreground">

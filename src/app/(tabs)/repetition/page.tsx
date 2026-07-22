@@ -38,7 +38,7 @@ export default function RepetitionPage() {
         {items.map((item) => (
           <div
             key={item.lessonId}
-            className="flex items-center justify-between rounded-xl bg-card p-3 ring-1 ring-foreground/10"
+            className="flex items-center justify-between rounded-xl bg-card p-3 ring-1 ring-foreground/15"
           >
             <div>
               <p className="text-xs text-muted-foreground">

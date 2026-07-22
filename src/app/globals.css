@@ -5,7 +5,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
   --color-ring: var(--ring);
@@ -38,25 +38,25 @@
 /* BioMap: спокойный зелёный минимализм, без тёмной темы (см. docs/design-reference.md) */
 :root {
   --background: #f3fbf6;
-  --foreground: #171b19;
+  --foreground: #12161a;
   --card: #ffffff;
-  --card-foreground: #171b19;
+  --card-foreground: #12161a;
   --popover: #ffffff;
-  --popover-foreground: #171b19;
-  --primary: #16a34a;
+  --popover-foreground: #12161a;
+  --primary: #0fa758;
   --primary-foreground: #ffffff;
-  --secondary: #e7f6ec;
-  --secondary-foreground: #14532d;
+  --secondary: #d6f3e0;
+  --secondary-foreground: #0f4a2a;
   --muted: #eef3f0;
-  --muted-foreground: #6b7280;
-  --accent: #e7f6ec;
-  --accent-foreground: #14532d;
+  --muted-foreground: #4b5563;
+  --accent: #d6f3e0;
+  --accent-foreground: #0f4a2a;
   --destructive: #dc2626;
   --warning: #f59e0b;
-  --success: #16a34a;
-  --border: #e5e9e6;
-  --input: #e5e9e6;
-  --ring: #16a34a;
+  --success: #0fa758;
+  --border: #ccd5cf;
+  --input: #ccd5cf;
+  --ring: #0fa758;
   --radius: 0.9rem;
 }
 
@@ -69,5 +69,6 @@
   }
   html {
     @apply font-sans;
+    font-size: 106%;
   }
 }

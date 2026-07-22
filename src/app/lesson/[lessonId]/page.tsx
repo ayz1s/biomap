@@ -202,11 +202,11 @@ function LessonCardView({ card }: { card: LessonCard }) {
 
   const style: Record<Exclude<CardType, "ILLUSTRATION">, { icon: typeof Lightbulb; className: string }> = {
     MAIN_IDEA: { icon: Lightbulb, className: "bg-secondary text-secondary-foreground" },
-    EXPLANATION: { icon: Lightbulb, className: "bg-card text-card-foreground ring-1 ring-foreground/10" },
+    EXPLANATION: { icon: Lightbulb, className: "bg-card text-card-foreground ring-1 ring-foreground/15" },
     CONNECTION: { icon: Link2, className: "bg-secondary text-secondary-foreground" },
     COMMON_MISTAKE: { icon: AlertTriangle, className: "bg-amber-50 text-amber-900" },
-    MINI_QUESTION: { icon: HelpCircle, className: "bg-card text-card-foreground ring-1 ring-foreground/10" },
-    KEY_TERMS: { icon: BookOpen, className: "bg-card text-card-foreground ring-1 ring-foreground/10" },
+    MINI_QUESTION: { icon: HelpCircle, className: "bg-card text-card-foreground ring-1 ring-foreground/15" },
+    KEY_TERMS: { icon: BookOpen, className: "bg-card text-card-foreground ring-1 ring-foreground/15" },
     SUMMARY: { icon: ListChecks, className: "bg-secondary text-secondary-foreground" },
   };
   const { icon, className } = style[card.type];

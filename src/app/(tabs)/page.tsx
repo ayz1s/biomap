@@ -45,7 +45,7 @@ export default function HomePage() {
         <p className="text-muted-foreground">
           Ассалому алайкум{user?.firstName ? `, ${user.firstName}` : ""}!
         </p>
-        <h2 className="text-xl font-semibold">Что изучаем сегодня?</h2>
+        <h2 className="text-2xl font-semibold">Что изучаем сегодня?</h2>
       </div>
 
       <Card className="gap-3 p-4">

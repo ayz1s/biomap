@@ -50,7 +50,7 @@ export default function TopicsPage() {
           <Link
             key={topic.id}
             href={`/topics/${topic.id}`}
-            className="flex items-center gap-3 rounded-xl bg-card p-3 ring-1 ring-foreground/10"
+            className="flex items-center gap-3 rounded-xl bg-card p-3 ring-1 ring-foreground/15"
           >
             <TopicIcon icon={topic.icon} colorKey={topic.colorKey} />
             <div className="flex-1">

@@ -1,0 +1,9 @@
+-- CreateEnum
+CREATE TYPE "Region" AS ENUM ('ANDIJAN', 'BUKHARA', 'JIZZAKH', 'KASHKADARYA', 'NAVOI', 'NAMANGAN', 'SAMARKAND', 'SURKHANDARYA', 'SYRDARYA', 'TASHKENT_REGION', 'FERGANA', 'KHOREZM', 'KARAKALPAKSTAN');
+
+-- CreateEnum
+CREATE TYPE "RegistrationStep" AS ENUM ('NAME', 'AWAITING_NAME_INPUT', 'REGION', 'DONE');
+
+-- AlterTable
+ALTER TABLE "User" ADD COLUMN     "region" "Region",
+ADD COLUMN     "registrationStep" "RegistrationStep" NOT NULL DEFAULT 'DONE';
