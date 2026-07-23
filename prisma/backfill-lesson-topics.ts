@@ -58,9 +58,6 @@ async function main() {
 
   console.log(`\nОбновлено: ${updated}, уже было верно: ${alreadyOk}, нет в БД: ${missing.length}`);
   if (missing.length) console.log("Отсутствуют в БД (пропущены):", missing.join(", "));
-
-  const stillNull = await prisma.lesson.count({ where: { topicId: null } });
-  console.log(`Уроков без topicId во всей БД: ${stillNull}`);
 }
 
 main()
