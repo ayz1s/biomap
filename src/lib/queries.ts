@@ -1,96 +1,184 @@
 import { prisma } from "@/lib/prisma";
 import { nextDueDate, nextInterval } from "@/lib/spaced-repetition";
 
-export async function getTopicsWithProgress(userId: string | null) {
-  const topics = await prisma.crossTopic.findMany({
+async function getCompletedLessonIds(userId: string | null) {
+  if (!userId) return new Set<string>();
+  const rows = await prisma.userLessonProgress.findMany({
+    where: { userId, completed: true },
+    select: { lessonId: true },
+  });
+  return new Set(rows.map((p) => p.lessonId));
+}
+
+// Вкладка "По темам" — лендинг: список предметных разделов со сквозным
+// прогрессом по всем классам сразу.
+export async function getCategoriesWithProgress(userId: string | null) {
+  const categories = await prisma.topicCategory.findMany({
     orderBy: { order: "asc" },
     include: {
-      gradeLinks: {
-        orderBy: { order: "asc" },
-        include: {
-          grade: true,
-          lessons: { where: { published: true }, include: { cards: true } },
-        },
+      topics: {
+        include: { lessons: { where: { published: true }, select: { id: true } } },
       },
     },
   });
 
-  const completedLessonIds = userId
-    ? new Set(
-        (
-          await prisma.userLessonProgress.findMany({
-            where: { userId, completed: true },
-            select: { lessonId: true },
-          })
-        ).map((p) => p.lessonId),
-      )
-    : new Set<string>();
+  const completedLessonIds = await getCompletedLessonIds(userId);
 
-  return topics.map((topic) => {
-    const grades = topic.gradeLinks.map((l) => l.grade.number);
-    const lessons = topic.gradeLinks.flatMap((l) => l.lessons);
+  return categories.map((category) => {
+    const lessons = category.topics.flatMap((t) => t.lessons);
     const total = lessons.length;
     const completed = lessons.filter((l) => completedLessonIds.has(l.id)).length;
-    const progress = total === 0 ? 0 : Math.round((completed / total) * 100);
 
     return {
-      id: topic.id,
-      name: topic.name,
-      icon: topic.icon,
-      colorKey: topic.colorKey,
-      minGrade: grades.length ? Math.min(...grades) : null,
-      maxGrade: grades.length ? Math.max(...grades) : null,
-      progress,
+      id: category.id,
+      name: category.name,
+      icon: category.icon,
+      colorKey: category.colorKey,
+      topicCount: category.topics.length,
+      progress: total === 0 ? 0 : Math.round((completed / total) * 100),
       hasLessons: total > 0,
-      firstLessonId: lessons[0]?.id ?? null,
     };
   });
 }
 
-export async function getTopicDetail(topicId: string, userId: string | null) {
-  const topic = await prisma.crossTopic.findUnique({
-    where: { id: topicId },
+// Раздел вкладки "По темам" — темы категории из всех классов, сгруппированные по классу.
+export async function getCategoryDetail(categoryId: string, userId: string | null) {
+  const category = await prisma.topicCategory.findUnique({
+    where: { id: categoryId },
     include: {
-      gradeLinks: {
-        orderBy: { order: "asc" },
+      topics: {
+        orderBy: [{ gradeId: "asc" }, { order: "asc" }],
         include: {
           grade: true,
-          lessons: { where: { published: true }, orderBy: { order: "asc" } },
+          lessons: { where: { published: true }, select: { id: true } },
         },
       },
+    },
+  });
+  if (!category) return null;
+
+  const completedLessonIds = await getCompletedLessonIds(userId);
+  const categoryTopics = category.topics;
+
+  const byGrade = new Map<number, { gradeNumber: number; topics: ReturnType<typeof toTopicSummary>[] }>();
+  function toTopicSummary(topic: (typeof categoryTopics)[number]) {
+    const completed = topic.lessons.filter((l) => completedLessonIds.has(l.id)).length;
+    return {
+      id: topic.id,
+      title: topic.title,
+      chapterTitle: topic.chapterTitle,
+      hasLessons: topic.lessons.length > 0,
+      lessonsCompleted: completed,
+      lessonsTotal: topic.lessons.length,
+    };
+  }
+
+  for (const topic of category.topics) {
+    const gradeNumber = topic.grade.number;
+    const bucket = byGrade.get(gradeNumber) ?? { gradeNumber, topics: [] };
+    bucket.topics.push(toTopicSummary(topic));
+    byGrade.set(gradeNumber, bucket);
+  }
+
+  return {
+    id: category.id,
+    name: category.name,
+    icon: category.icon,
+    grades: Array.from(byGrade.values()).sort((a, b) => a.gradeNumber - b.gradeNumber),
+  };
+}
+
+// Вкладка "По классам" — главы и темы одного класса, в порядке учебника.
+export async function getGradeCurriculum(gradeNumber: number, userId: string | null) {
+  const grade = await prisma.grade.findUnique({
+    where: { number: gradeNumber },
+    include: {
+      topics: {
+        orderBy: { order: "asc" },
+        include: { lessons: { where: { published: true }, select: { id: true } } },
+      },
+    },
+  });
+  if (!grade) return null;
+
+  const completedLessonIds = await getCompletedLessonIds(userId);
+  const gradeTopics = grade.topics;
+
+  const byChapter = new Map<
+    number,
+    { chapterOrder: number; chapterTitle: string; topics: ReturnType<typeof toTopicSummary>[] }
+  >();
+  function toTopicSummary(topic: (typeof gradeTopics)[number]) {
+    const completed = topic.lessons.filter((l) => completedLessonIds.has(l.id)).length;
+    return {
+      id: topic.id,
+      title: topic.title,
+      hasLessons: topic.lessons.length > 0,
+      lessonsCompleted: completed,
+      lessonsTotal: topic.lessons.length,
+    };
+  }
+
+  for (const topic of grade.topics) {
+    const bucket =
+      byChapter.get(topic.chapterOrder) ?? { chapterOrder: topic.chapterOrder, chapterTitle: topic.chapterTitle, topics: [] };
+    bucket.topics.push(toTopicSummary(topic));
+    byChapter.set(topic.chapterOrder, bucket);
+  }
+
+  return {
+    gradeNumber: grade.number,
+    chapters: Array.from(byChapter.values()).sort((a, b) => a.chapterOrder - b.chapterOrder),
+  };
+}
+
+// Экран одной темы — контекст (класс/глава/раздел), список уроков (не только
+// первый — темы вроде "§10" могут иметь несколько уроков) и связи с другими темами.
+export async function getTopicDetail(topicId: string, userId: string | null) {
+  const topic = await prisma.topic.findUnique({
+    where: { id: topicId },
+    include: {
+      grade: true,
+      category: true,
+      lessons: { where: { published: true }, orderBy: { order: "asc" } },
       connectionsFrom: { include: { toTopic: true } },
     },
   });
   if (!topic) return null;
 
-  const completedLessonIds = userId
-    ? new Set(
-        (
-          await prisma.userLessonProgress.findMany({
-            where: { userId, completed: true },
-            select: { lessonId: true },
-          })
-        ).map((p) => p.lessonId),
-      )
-    : new Set<string>();
+  const completedLessonIds = await getCompletedLessonIds(userId);
 
   return {
     id: topic.id,
-    name: topic.name,
-    icon: topic.icon,
-    timeline: topic.gradeLinks.map((link) => ({
-      gradeNumber: link.grade.number,
-      status: link.grade.status,
-      subtitle: link.subtitle,
-      firstLessonId: link.lessons[0]?.id ?? null,
-      lessonsCompleted: link.lessons.filter((l) => completedLessonIds.has(l.id)).length,
-      lessonsTotal: link.lessons.length,
+    title: topic.title,
+    chapterTitle: topic.chapterTitle,
+    gradeNumber: topic.grade.number,
+    categoryName: topic.category?.name ?? null,
+    lessons: topic.lessons.map((l) => ({
+      id: l.id,
+      title: l.title,
+      completed: completedLessonIds.has(l.id),
     })),
     connections: topic.connectionsFrom.map((c) => ({
-      toTopicName: c.toTopic.name,
+      toTopicName: c.toTopic.title,
       description: c.description,
     })),
   };
+}
+
+// Поиск по названию темы для вкладки "По темам" (200-300+ тем — нужен поиск).
+export async function searchTopics(query: string) {
+  const q = query.trim();
+  if (q.length < 2) return [];
+
+  const topics = await prisma.topic.findMany({
+    where: { title: { contains: q, mode: "insensitive" } },
+    orderBy: [{ gradeId: "asc" }, { order: "asc" }],
+    include: { grade: true },
+    take: 30,
+  });
+
+  return topics.map((t) => ({ id: t.id, title: t.title, gradeNumber: t.grade.number }));
 }
 
 export async function getLessonWithProgress(lessonId: string, userId: string | null) {
@@ -105,7 +193,7 @@ export async function getLessonWithProgress(lessonId: string, userId: string | n
           hints: { orderBy: { order: "asc" } },
         },
       },
-      topicGradeLink: { include: { crossTopic: true, grade: true } },
+      topic: { include: { grade: true } },
     },
   });
   if (!lesson || !lesson.published) return null;
@@ -182,7 +270,7 @@ export async function getMistakesGroupedByTopic(userId: string) {
     where: { userId, timesWrong: { gt: 0 } },
     include: {
       question: {
-        include: { lesson: { include: { topicGradeLink: { include: { crossTopic: true } } } } },
+        include: { lesson: { include: { topic: true } } },
       },
     },
   });
@@ -193,7 +281,7 @@ export async function getMistakesGroupedByTopic(userId: string) {
   >();
 
   for (const m of mistakes) {
-    const topicName = m.question.lesson.topicGradeLink.crossTopic.name;
+    const topicName = m.question.lesson.topic.title;
     const entry = byTopic.get(topicName) ?? { topicName, wrongCount: 0, totalAttempts: 0 };
     entry.wrongCount += m.timesWrong;
     entry.totalAttempts += m.timesWrong;
@@ -207,7 +295,7 @@ export async function getRepetitionSchedule(userId: string) {
   const items = await prisma.repetitionItem.findMany({
     where: { userId },
     orderBy: { dueAt: "asc" },
-    include: { lesson: { include: { topicGradeLink: { include: { crossTopic: true } } } } },
+    include: { lesson: { include: { topic: true } } },
   });
 
   const streak = await prisma.userStreak.findUnique({ where: { userId } });
@@ -216,7 +304,7 @@ export async function getRepetitionSchedule(userId: string) {
     items: items.map((item) => ({
       lessonId: item.lessonId,
       lessonTitle: item.lesson.title,
-      topicName: item.lesson.topicGradeLink.crossTopic.name,
+      topicName: item.lesson.topic.title,
       dueAt: item.dueAt,
     })),
     currentStreak: streak?.currentStreak ?? 0,

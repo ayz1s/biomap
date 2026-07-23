@@ -1,0 +1,97 @@
+// Извлечено из книги/biologiya_6_ru_text.txt, сверено по авторскому "СОДЕРЖАНИЕ"
+// в конце книги (чистые заголовки без OCR-помех). Весь курс — ботаника.
+import type { CurriculumChapter } from "./categories";
+
+const B = "botany" as const;
+
+export const grade6: CurriculumChapter[] = [
+  {
+    chapterOrder: 1,
+    chapterTitle: "Общее знакомство с растительным миром",
+    topics: [
+      { order: 1, title: "Ботаника – наука о растениях", categorySlug: B },
+      { order: 2, title: "Общее знакомство с цветковыми растениями", categorySlug: B },
+      { order: 3, title: "Жизненные формы растений", categorySlug: B },
+    ],
+  },
+  {
+    chapterOrder: 2,
+    chapterTitle: "Клетка – основа жизни",
+    topics: [
+      { order: 4, title: "Строение растительной клетки", categorySlug: B },
+      { order: 5, title: "Жизнедеятельность клетки", categorySlug: B },
+      { order: 6, title: "Ткани растений", categorySlug: B },
+    ],
+  },
+  {
+    chapterOrder: 3,
+    chapterTitle: "Вегетативные и генеративные органы растений",
+    topics: [
+      { order: 7, title: "Виды корней и корневой системы", categorySlug: B },
+      { order: 8, title: "Внешнее и внутреннее строение корня", categorySlug: B },
+      { order: 9, title: "Видоизмененные корни", categorySlug: B },
+      { order: 10, title: "Побег", categorySlug: B },
+      { order: 11, title: "Разнообразие стеблей", categorySlug: B },
+      { order: 12, title: "Почка", categorySlug: B },
+      { order: 13, title: "Внутреннее строение стебля", categorySlug: B },
+      { order: 14, title: "Формирование побега", categorySlug: B },
+      { order: 15, title: "Внешнее строение листа", categorySlug: B },
+      { order: 16, title: "Простые и сложные листья", categorySlug: B },
+      { order: 17, title: "Расположение листьев на стебле", categorySlug: B },
+      { order: 18, title: "Внутреннее строение листа", categorySlug: B },
+      { order: 19, title: "Видоизмененные побеги", categorySlug: B },
+      { order: 20, title: "Цветок – орган генеративного размножения растений", categorySlug: B },
+      { order: 21, title: "Разнообразие цветков", categorySlug: B },
+      { order: 22, title: "Соцветия", categorySlug: B },
+      { order: 23, title: "Плоды", categorySlug: B },
+      { order: 24, title: "Семя", categorySlug: B },
+    ],
+  },
+  {
+    chapterOrder: 4,
+    chapterTitle: "Жизнедеятельность растений",
+    topics: [
+      { order: 25, title: "Минеральное питание растений. Корневое давление. Удобрения", categorySlug: B },
+      { order: 26, title: "Передвижение питательных веществ по стеблю", categorySlug: B },
+      { order: 27, title: "Образование органических веществ в листьях", categorySlug: B },
+      { order: 28, title: "Дыхание растений. Обмен веществ в растениях", categorySlug: B },
+      { order: 29, title: "Испарение воды растениями", categorySlug: B },
+      { order: 30, title: "Изменения в жизни растений осенью", categorySlug: B },
+      { order: 31, title: "Размножение растений", categorySlug: B },
+      { order: 32, title: "Опыление цветков", categorySlug: B },
+      { order: 33, title: "Половое размножение цветковых растений. Оплодотворение", categorySlug: B },
+      { order: 34, title: "Распространение семян и плодов", categorySlug: B },
+      { order: 35, title: "Прорастание семян", categorySlug: B },
+      { order: 36, title: "Растение – целостный организм", categorySlug: B },
+      { order: 37, title: "Влияние экологических факторов на растения", categorySlug: B },
+    ],
+  },
+  {
+    chapterOrder: 5,
+    chapterTitle: "Систематика растений",
+    topics: [
+      { order: 38, title: "Общие сведения о систематике растений", categorySlug: B },
+      { order: 39, title: "Водоросли. Одноклеточные зеленые водоросли", categorySlug: B },
+      { order: 40, title: "Многоклеточные водоросли", categorySlug: B },
+      { order: 41, title: "Отдел бурых и красных водорослей", categorySlug: B },
+      { order: 42, title: "Отдел моховидные", categorySlug: B },
+      { order: 43, title: "Отдел хвощевидные", categorySlug: B },
+      { order: 44, title: "Отдел папоротниковидные", categorySlug: B },
+      { order: 45, title: "Отдел голосеменных растений", categorySlug: B },
+      { order: 46, title: "Покрытосеменные растения", categorySlug: B },
+      { order: 47, title: "Семейство розоцветные", categorySlug: B },
+      { order: 48, title: "Семейство капустные", categorySlug: B },
+      { order: 49, title: "Семейство маревые", categorySlug: B },
+      { order: 50, title: "Семейство мальвовые", categorySlug: B },
+      { order: 51, title: "Семейство мотыльковые (бобовые)", categorySlug: B },
+      { order: 52, title: "Семейство пасленовые", categorySlug: B },
+      { order: 53, title: "Семейство виноградные", categorySlug: B },
+      { order: 54, title: "Семейство тыквенные", categorySlug: B },
+      { order: 55, title: "Семейство астровые (сложноцветные)", categorySlug: B },
+      { order: 56, title: "Семейство лилейные", categorySlug: B },
+      { order: 57, title: "Семейство луковые", categorySlug: B },
+      { order: 58, title: "Семейство мятликовые (злаки)", categorySlug: B },
+      { order: 59, title: "Развитие растительного мира на Земле", categorySlug: B },
+    ],
+  },
+];

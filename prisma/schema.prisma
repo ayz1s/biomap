@@ -73,45 +73,51 @@ model Grade {
   number Int         @unique
   status GradeStatus @default(SOON)
 
-  topicLinks TopicGradeLink[]
+  topics Topic[]
 }
 
-model CrossTopic {
+// Предметный раздел для вкладки "По темам" — не привязан к классу, собирает
+// темы одного предмета (напр. Ботаника) из всех классов сразу.
+model TopicCategory {
   id       String @id @default(cuid())
   name     String
   icon     String
   colorKey String
   order    Int    @default(0)
 
-  gradeLinks      TopicGradeLink[]
-  connectionsFrom TopicConnection[] @relation("FromTopic")
-  connectionsTo   TopicConnection[] @relation("ToTopic")
+  topics Topic[]
 }
 
-// Связывает сквозную тему с конкретным классом — таймлайн на экране "Тема"
-model TopicGradeLink {
-  id           String     @id @default(cuid())
-  crossTopicId String
-  crossTopic   CrossTopic @relation(fields: [crossTopicId], references: [id])
+// Тема уровня параграфа учебника — всегда привязана к одному классу.
+// Узел вкладки "По классам" (класс → главы → темы) и, через categoryId,
+// узел вкладки "По темам" (раздел → темы из всех классов).
+model Topic {
+  id           String         @id @default(cuid())
   gradeId      String
-  grade        Grade      @relation(fields: [gradeId], references: [id])
-  subtitle     String
-  order        Int        @default(0)
+  grade        Grade          @relation(fields: [gradeId], references: [id])
+  categoryId   String?
+  category     TopicCategory? @relation(fields: [categoryId], references: [id])
+  chapterTitle String
+  chapterOrder Int
+  title        String
+  order        Int
 
-  lessons Lesson[]
+  lessons         Lesson[]
+  connectionsFrom TopicConnection[] @relation("FromTopic")
+  connectionsTo   TopicConnection[] @relation("ToTopic")
 
-  @@unique([crossTopicId, gradeId])
+  @@unique([gradeId, order])
 }
 
 model Lesson {
-  id               String         @id @default(cuid())
-  topicGradeLinkId String
-  topicGradeLink   TopicGradeLink @relation(fields: [topicGradeLinkId], references: [id])
-  title            String
-  order            Int            @default(0)
+  id        String  @id @default(cuid())
+  topicId   String
+  topic     Topic   @relation(fields: [topicId], references: [id])
+  title     String
+  order     Int     @default(0)
   // Feature-флаг: пока false, урок не отдаётся ни одним API-роутом и не всплывает
   // ни в одном списке — не только скрыт из UI, но и недоступен по прямой ссылке.
-  published        Boolean        @default(false)
+  published Boolean @default(false)
 
   cards           LessonCard[]
   questions       Question[]
@@ -137,11 +143,11 @@ model LessonCard {
 
 // Связи между темами — для карточек "Связь с другой темой" и будущей карты знаний
 model TopicConnection {
-  id          String     @id @default(cuid())
+  id          String @id @default(cuid())
   fromTopicId String
-  fromTopic   CrossTopic @relation("FromTopic", fields: [fromTopicId], references: [id])
+  fromTopic   Topic  @relation("FromTopic", fields: [fromTopicId], references: [id])
   toTopicId   String
-  toTopic     CrossTopic @relation("ToTopic", fields: [toTopicId], references: [id])
+  toTopic     Topic  @relation("ToTopic", fields: [toTopicId], references: [id])
   description String
 }
 

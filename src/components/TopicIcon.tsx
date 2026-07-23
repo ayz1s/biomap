@@ -8,6 +8,10 @@ import {
   Layers,
   FlaskConical,
   PawPrint,
+  Compass,
+  HeartPulse,
+  GitBranch,
+  TrendingUp,
   type LucideIcon,
 } from "lucide-react";
 
@@ -21,6 +25,10 @@ const ICONS: Record<string, LucideIcon> = {
   layers: Layers,
   "flask-conical": FlaskConical,
   "paw-print": PawPrint,
+  compass: Compass,
+  "heart-pulse": HeartPulse,
+  "git-branch": GitBranch,
+  "trending-up": TrendingUp,
 };
 
 const COLORS: Record<string, string> = {
@@ -33,6 +41,8 @@ const COLORS: Record<string, string> = {
   emerald: "bg-emerald-100 text-emerald-700 ring-1 ring-inset ring-emerald-300/70",
   orange: "bg-orange-100 text-orange-700 ring-1 ring-inset ring-orange-300/70",
   rose: "bg-rose-100 text-rose-700 ring-1 ring-inset ring-rose-300/70",
+  indigo: "bg-indigo-100 text-indigo-700 ring-1 ring-inset ring-indigo-300/70",
+  cyan: "bg-cyan-100 text-cyan-700 ring-1 ring-inset ring-cyan-300/70",
 };
 
 export function TopicIcon({ icon, colorKey }: { icon: string; colorKey: string }) {

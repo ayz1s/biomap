@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { getCurrentUserId } from "@/lib/session";
-import { getTopicsWithProgress } from "@/lib/queries";
+import { getCategoriesWithProgress } from "@/lib/queries";
 
 export async function GET() {
   const userId = await getCurrentUserId();
-  const topics = await getTopicsWithProgress(userId);
-  return NextResponse.json({ topics });
+  const categories = await getCategoriesWithProgress(userId);
+  return NextResponse.json({ categories });
 }

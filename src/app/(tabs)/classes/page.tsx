@@ -21,26 +21,19 @@ export default function ClassesPage() {
   return (
     <div className="flex flex-col gap-4 px-4">
       <ScreenHeader title="По классам" />
+      <p className="text-sm text-muted-foreground">
+        Программа каждого класса по главам — так же, как в учебнике.
+      </p>
 
       <div className="grid grid-cols-3 gap-3">
-        {(data?.grades ?? []).map((grade) => {
-          const content = (
+        {(data?.grades ?? []).map((grade) => (
+          <Link key={grade.id} href={`/classes/${grade.number}`}>
             <Card className="items-center gap-1 p-4">
               <p className="text-xl font-semibold">{grade.number}</p>
               <p className="text-xs text-muted-foreground">класс</p>
-              {grade.status === "SOON" && <span className="text-[10px] text-muted-foreground">Скоро</span>}
             </Card>
-          );
-          return grade.status === "ACTIVE" ? (
-            <Link key={grade.id} href="/topics">
-              {content}
-            </Link>
-          ) : (
-            <div key={grade.id} aria-disabled>
-              {content}
-            </div>
-          );
-        })}
+          </Link>
+        ))}
       </div>
     </div>
   );
