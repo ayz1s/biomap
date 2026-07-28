@@ -227,8 +227,13 @@ function CardsTab({
     cards.filter((c) => c.anchorCardId).map((c) => [c.anchorCardId as string, c]),
   );
 
-  const card = mainCards[index];
-  const isLast = index === mainCards.length - 1;
+  // currentCardIndex может быть сохранён ещё до того, как в уроке появились
+  // привязанные к карточкам схемы (anchorCardId) — тогда старый индекс
+  // указывает за пределы уменьшившегося mainCards. Зажимаем в границы, а не
+  // падаем на mainCards[index] === undefined.
+  const safeIndex = Math.min(index, mainCards.length - 1);
+  const card = mainCards[safeIndex];
+  const isLast = safeIndex === mainCards.length - 1;
   const anchoredScheme = anchoredSchemeByCardId.get(card.id) ?? null;
 
   function saveProgress(next: { currentCardIndex?: number; completed?: boolean }) {
@@ -245,14 +250,14 @@ function CardsTab({
       router.push(`/test/${lessonId}`);
       return;
     }
-    const nextIndex = index + 1;
+    const nextIndex = safeIndex + 1;
     setIndex(nextIndex);
     saveProgress({ currentCardIndex: nextIndex });
   }
 
   function goBack() {
-    if (index === 0) return;
-    setIndex(index - 1);
+    if (safeIndex === 0) return;
+    setIndex(safeIndex - 1);
   }
 
   return (
@@ -266,13 +271,13 @@ function CardsTab({
       <div className="flex items-center justify-between pb-4">
         <button
           onClick={goBack}
-          disabled={index === 0}
+          disabled={safeIndex === 0}
           className="flex items-center gap-1 text-muted-foreground disabled:opacity-30"
         >
           <ArrowLeft size={18} /> Назад
         </button>
         <span className="text-sm text-muted-foreground">
-          {index + 1} / {mainCards.length}
+          {safeIndex + 1} / {mainCards.length}
         </span>
         <button onClick={goNext} className="flex items-center gap-1 font-medium text-primary">
           {isLast ? "Начать тест" : "Далее"} <ArrowRight size={18} />
