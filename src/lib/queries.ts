@@ -185,7 +185,10 @@ export async function getLessonWithProgress(lessonId: string, userId: string | n
   const lesson = await prisma.lesson.findUnique({
     where: { id: lessonId },
     include: {
-      cards: { orderBy: { order: "asc" } },
+      cards: {
+        include: { steps: { orderBy: { order: "asc" } } },
+        orderBy: { order: "asc" },
+      },
       questions: {
         orderBy: { order: "asc" },
         include: {
@@ -193,6 +196,7 @@ export async function getLessonWithProgress(lessonId: string, userId: string | n
           hints: { orderBy: { order: "asc" } },
         },
       },
+      textChunks: { orderBy: { order: "asc" } },
       topic: { include: { grade: true } },
     },
   });
@@ -328,19 +332,21 @@ export async function getHomeSummary(userId: string | null) {
         include: { cards: true },
       });
 
+  // anchorCardId != null — схема привязана к другой карточке (иконка+оверлей,
+  // см. LessonCard.anchorCardId) и не занимает отдельный экран в "N из M".
   const continueLesson = inProgress
     ? {
         lessonId: inProgress.lesson.id,
         title: inProgress.lesson.title,
         currentCardIndex: inProgress.currentCardIndex,
-        totalCards: inProgress.lesson.cards.length,
+        totalCards: inProgress.lesson.cards.filter((c) => !c.anchorCardId).length,
       }
     : fallbackLesson
       ? {
           lessonId: fallbackLesson.id,
           title: fallbackLesson.title,
           currentCardIndex: 0,
-          totalCards: fallbackLesson.cards.length,
+          totalCards: fallbackLesson.cards.filter((c) => !c.anchorCardId).length,
         }
       : null;
 

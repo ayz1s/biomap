@@ -123,6 +123,20 @@ model Lesson {
   questions       Question[]
   progress        UserLessonProgress[]
   repetitionItems RepetitionItem[]
+  textChunks      LessonTextChunk[]
+}
+
+// Кусок исходного текста параграфа учебника — как есть, без сокращений, с
+// подсветкой терминов/правил (html содержит только <mark data-k="t"|"r">).
+// Отдельная вкладка "Текст" в уроке — читается независимо от cards/questions.
+model LessonTextChunk {
+  id       String @id @default(cuid())
+  lessonId String
+  lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  order    Int
+  // Подзаголовок куска (как в самой книге, напр. "Формы клеток"). Может быть пустым.
+  heading String?
+  html    String
 }
 
 model LessonCard {
@@ -139,6 +153,32 @@ model LessonCard {
   // Служебная трассировка к источнику — никогда не сериализуется в клиентский API-ответ.
   canonicalId  String?
   sourcePages  String?
+
+  // Схема (type=ILLUSTRATION), привязанная к другой карточке этого же урока:
+  // не занимает отдельный экран в основной последовательности "Далее", а
+  // показывается по тапу на маленькую иконку прямо на карточке-первоисточнике.
+  // NULL — обычное поведение (отдельный экран), как было раньше.
+  anchorCardId String?
+  anchorCard   LessonCard?  @relation("CardAnchor", fields: [anchorCardId], references: [id], onDelete: SetNull)
+  anchoredBy   LessonCard[] @relation("CardAnchor")
+
+  // Шаги внутри карточки — тап по карточке листает их один за другим, прежде
+  // чем становится доступно общее "Далее" к следующей карточке урока. Пусто —
+  // обычная плоская карточка (content показывается целиком), как раньше.
+  steps LessonCardStep[]
+}
+
+// Один шаг тап-степпера внутри карточки: короткая строка видна сразу,
+// context — контекст/цитата из учебника, свёрнут по умолчанию, разворачивается
+// по кнопке "из учебника". Нужен, чтобы абитуриент не тонул в тексте, но мог
+// при желании увидеть контекст, к которому реально привязаны вопросы DTM.
+model LessonCardStep {
+  id      String     @id @default(cuid())
+  cardId  String
+  card    LessonCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  order   Int
+  text    String
+  context String?
 }
 
 // Связи между темами — для карточек "Связь с другой темой" и будущей карты знаний

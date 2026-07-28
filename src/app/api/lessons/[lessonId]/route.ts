@@ -14,7 +14,7 @@ export async function GET(
   // Явно перечисляем поля наружу: canonicalId/sourcePages — служебная трассировка
   // к источнику, ученику не показывается. isCorrect тоже не отдаём — ответ
   // проверяется только на сервере (/answer).
-  const cards = data.lesson.cards.map(({ id, type, order, title, content, caption, svgKey }) => ({
+  const cards = data.lesson.cards.map(({ id, type, order, title, content, caption, svgKey, anchorCardId, steps }) => ({
     id,
     type,
     order,
@@ -22,6 +22,8 @@ export async function GET(
     content,
     caption,
     svgKey,
+    anchorCardId,
+    steps: steps.map(({ order: stepOrder, text, context }) => ({ order: stepOrder, text, context })),
   }));
 
   const questions = data.lesson.questions.map((q) => ({
@@ -34,8 +36,10 @@ export async function GET(
     hints: q.hints.map(({ order, text }) => ({ order, text })),
   }));
 
+  const textChunks = data.lesson.textChunks.map(({ order, heading, html }) => ({ order, heading, html }));
+
   return NextResponse.json({
-    lesson: { id: data.lesson.id, title: data.lesson.title, cards, questions },
+    lesson: { id: data.lesson.id, title: data.lesson.title, cards, questions, textChunks },
     progress: data.progress,
   });
 }
