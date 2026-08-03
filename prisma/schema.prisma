@@ -119,11 +119,12 @@ model Lesson {
   // ни в одном списке — не только скрыт из UI, но и недоступен по прямой ссылке.
   published Boolean @default(false)
 
-  cards           LessonCard[]
-  questions       Question[]
-  progress        UserLessonProgress[]
-  repetitionItems RepetitionItem[]
-  textChunks      LessonTextChunk[]
+  cards              LessonCard[]
+  questions          Question[]
+  progress           UserLessonProgress[]
+  repetitionItems    RepetitionItem[]
+  textChunks         LessonTextChunk[]
+  conceptOccurrences ConceptOccurrence[]
 }
 
 // Кусок исходного текста параграфа учебника — как есть, без сокращений, с
@@ -179,6 +180,34 @@ model LessonCardStep {
   order   Int
   text    String
   context String?
+}
+
+// Закрытый справочник сквозных понятий (клетка, фотосинтез, голосеменные…),
+// см. docs/cross-grade-links-feature.md. Сеется из prisma/data/concepts.ts,
+// по аналогии с TopicCategory ← categories.ts.
+model Concept {
+  id           String @id
+  title        String
+  categorySlug String?
+
+  occurrences ConceptOccurrence[]
+}
+
+// Одно вхождение понятия в один урок: помечено агентом при генерации/ретрофите
+// урока, quote — дословная цитата из textChunks этого же урока (проверяется
+// при импорте). onDelete: Cascade — importLesson() пересоздаёт урок целиком.
+model ConceptOccurrence {
+  id          String  @id @default(cuid())
+  conceptId   String
+  concept     Concept @relation(fields: [conceptId], references: [id])
+  lessonId    String
+  lesson      Lesson  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  gradeNumber Int
+  role        String // "PRIMARY" | "MENTION"
+  quote       String
+  pages       String?
+
+  @@unique([conceptId, lessonId])
 }
 
 // Связи между темами — для карточек "Связь с другой темой" и будущей карты знаний

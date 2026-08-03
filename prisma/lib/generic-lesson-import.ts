@@ -1,4 +1,5 @@
 import type { PrismaClient, LessonCardType, QuestionType } from "@prisma/client";
+import { CONCEPTS } from "../data/concepts";
 
 export type LessonRow = {
   Lesson_ID: string;
@@ -79,6 +80,17 @@ export type TextChunkRow = {
   HTML: string;
 };
 
+// Пометка сквозного понятия (см. docs/cross-grade-links-feature.md), реально
+// встречающегося в параграфе этого урока, с дословной цитатой оттуда. Связь
+// между классами никто не пишет руками — она вычисляется совпадением Слаг
+// у двух уроков; эта запись лишь фиксирует, что понятие есть В ЭТОМ уроке.
+export type ConceptRow = {
+  Слаг: string;
+  Роль: "основное" | "упоминание";
+  Цитата: string;
+  Страницы?: string;
+};
+
 export type LessonJson = {
   lessonId: string;
   lesson: LessonRow;
@@ -86,6 +98,7 @@ export type LessonJson = {
   schemes: SchemeRow[];
   questions: QuestionRow[];
   textChunks?: TextChunkRow[];
+  Понятия?: ConceptRow[];
 };
 
 // CONTENT_QA_PASSED — старый ручной аудит (5 класс, см. BioMap_Gold_v2 в "файл
@@ -96,6 +109,24 @@ export type LessonJson = {
 const ALLOWED_STATUS = new Set(["CONTENT_QA_PASSED", "AUTO_QA_PASSED"]);
 const ALLOWED_RELEASE_SOURCES = new Set(["READY", "READY_EDITED", "READY/READY_EDITED"]);
 const FORBIDDEN_STATUSES = new Set(["EXCLUDED", "BLOCK"]);
+const CONCEPT_IDS = new Set(CONCEPTS.map((c) => c.id));
+
+// Снимает теги <mark> и нормализует (схлопнуть пробелы, ё→е, нижний регистр),
+// чтобы механически проверить: "Цитата" — дословная подстрока textChunks
+// этого же урока. Единственное, что не даёт агентам выдумывать связи.
+function normalizeForQuoteMatch(text: string): string {
+  return text
+    .replace(/<\/?mark[^>]*>/g, "")
+    .replace(/\s+/g, " ")
+    .replace(/ё/g, "е")
+    .replace(/Ё/g, "Е")
+    .toLowerCase()
+    .trim();
+}
+
+function extractConceptSlugsFromHtml(html: string): string[] {
+  return [...html.matchAll(/data-c="([a-z0-9-]+)"/g)].map((m) => m[1]);
+}
 
 const COMPONENT_TYPE_MAP: Record<string, LessonCardType> = {
   MAIN_IDEA: "MAIN_IDEA",
@@ -235,7 +266,7 @@ export function validateLesson(lessonId: string, data: LessonJson) {
     }
   }
 
-  const ALLOWED_TAG = /^<\/?mark(?: data-k="[tr]")?>$/;
+  const ALLOWED_TAG = /^<\/?mark(?: data-k="[tr]"| data-k="x" data-c="[a-z0-9-]+")?>$/;
   (data.textChunks ?? []).forEach((chunk, i) => {
     if (!chunk.HTML || !chunk.HTML.trim()) {
       throw new Error(`textChunks[${i}]: пустой HTML`);
@@ -244,11 +275,58 @@ export function validateLesson(lessonId: string, data: LessonJson) {
     for (const tag of tags) {
       if (!ALLOWED_TAG.test(tag)) {
         throw new Error(
-          `textChunks[${i}]: недопустимый тег "${tag}" — разрешены только <mark data-k="t"> и <mark data-k="r">`,
+          `textChunks[${i}]: недопустимый тег "${tag}" — разрешены только <mark data-k="t">, <mark data-k="r"> и <mark data-k="x" data-c="слаг">`,
         );
       }
     }
   });
+
+  // Понятия (сквозные связи между классами, см. cross-grade-links-feature.md)
+  // — три автопроверки, делающие выдумывание связей невозможным.
+  const concepts = data.Понятия ?? [];
+
+  // 1) Слаг в data-c (textChunks) и в Понятия[].Слаг обязан существовать в concepts.ts.
+  const slugsInText = new Set(
+    (data.textChunks ?? []).flatMap((t) => extractConceptSlugsFromHtml(t.HTML)),
+  );
+  for (const slug of slugsInText) {
+    if (!CONCEPT_IDS.has(slug)) {
+      throw new Error(`textChunks: слаг понятия "${slug}" (data-c) не найден в prisma/data/concepts.ts`);
+    }
+  }
+  assertUnique(concepts.map((c) => c.Слаг), "Слаг понятия (Понятия[].Слаг)");
+  concepts.forEach((c, i) => {
+    if (!CONCEPT_IDS.has(c.Слаг)) {
+      throw new Error(`Понятия[${i}]: слаг "${c.Слаг}" не найден в prisma/data/concepts.ts`);
+    }
+    if (c.Роль !== "основное" && c.Роль !== "упоминание") {
+      throw new Error(`Понятия[${i}] (${c.Слаг}): недопустимая роль "${c.Роль}"`);
+    }
+    if (!c.Цитата || !c.Цитата.trim()) {
+      throw new Error(`Понятия[${i}] (${c.Слаг}): пустая цитата`);
+    }
+  });
+
+  // 2) Цитата обязана быть дословной подстрокой textChunks этого же урока.
+  const normalizedChunksText = (data.textChunks ?? [])
+    .map((t) => normalizeForQuoteMatch(t.HTML))
+    .join(" ");
+  concepts.forEach((c, i) => {
+    const normalizedQuote = normalizeForQuoteMatch(c.Цитата);
+    if (!normalizedChunksText.includes(normalizedQuote)) {
+      throw new Error(
+        `Понятия[${i}] (${c.Слаг}): цитата не найдена дословно в textChunks этого урока — "${c.Цитата}"`,
+      );
+    }
+  });
+
+  // 3) Не больше 6 понятий на урок и хотя бы одно с ролью "основное".
+  if (concepts.length > 6) {
+    throw new Error(`Понятия: не больше 6 на урок, получено ${concepts.length}`);
+  }
+  if (concepts.length > 0 && !concepts.some((c) => c.Роль === "основное")) {
+    throw new Error(`Понятия: должно быть хотя бы одно с ролью "основное"`);
+  }
 }
 
 // Идемпотентный scoped-импорт ровно одного урока поверх уже существующего
@@ -354,6 +432,15 @@ export async function importLesson(
             order: i,
             heading: t.Заголовок,
             html: t.HTML,
+          })),
+        },
+        conceptOccurrences: {
+          create: (data.Понятия ?? []).map((c) => ({
+            conceptId: c.Слаг,
+            gradeNumber: opts.gradeNumber,
+            role: c.Роль === "основное" ? "PRIMARY" : "MENTION",
+            quote: c.Цитата,
+            pages: c.Страницы,
           })),
         },
       },

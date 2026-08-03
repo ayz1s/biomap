@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useState, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -55,8 +55,31 @@ interface LessonTextChunk {
   html: string;
 }
 
+// Вхождение сквозного понятия в ДРУГОМ уроке (см. docs/cross-grade-links-feature.md).
+// Список уже отсортирован бэкендом: PRIMARY сначала, затем по классу.
+interface ConceptOccurrenceDto {
+  lessonId: string;
+  gradeNumber: number;
+  topicTitle: string;
+  role: "PRIMARY" | "MENTION";
+  quote: string;
+}
+
+interface LessonConcept {
+  slug: string;
+  title: string;
+  occurrences: ConceptOccurrenceDto[];
+}
+
 interface LessonData {
-  lesson: { id: string; title: string; cards: LessonCard[]; textChunks: LessonTextChunk[] };
+  lesson: {
+    id: string;
+    title: string;
+    gradeNumber: number;
+    cards: LessonCard[];
+    textChunks: LessonTextChunk[];
+    concepts: LessonConcept[];
+  };
   progress: { currentCardIndex: number } | null;
 }
 
@@ -122,7 +145,9 @@ export default function LessonPage({ params }: { params: Promise<{ lessonId: str
       </div>
 
       <div className="flex flex-1 flex-col">
-        {activeTab === "text" && <TextTab chunks={data.lesson.textChunks} />}
+        {activeTab === "text" && (
+          <TextTab chunks={data.lesson.textChunks} concepts={data.lesson.concepts} gradeNumber={data.lesson.gradeNumber} />
+        )}
         {activeTab === "schemes" && <SchemesTab cards={data.lesson.cards} />}
         {activeTab === "cards" && (
           <CardsTab lessonId={lessonId} cards={data.lesson.cards} progress={data.progress} router={router} />
@@ -135,9 +160,44 @@ export default function LessonPage({ params }: { params: Promise<{ lessonId: str
 // ---------- Текст ----------
 // Подсветка сделана через глобальный CSS (styled-jsx), т.к. html приходит
 // через dangerouslySetInnerHTML и обычные Tailwind-классы внутрь не долетают.
-// Разрешены ровно два вида <mark data-k="t"|"r">, оба проверены на бэкенде
-// (validateLesson) — сюда долетает только безопасный HTML.
-function TextTab({ chunks }: { chunks: LessonTextChunk[] }) {
+// Разрешены ровно три вида <mark data-k="t"|"r"|"x">, все проверены на
+// бэкенде (validateLesson) — сюда долетает только безопасный HTML.
+
+// data-c="{slug}" размечен на бэкенде без сведений о других классах — здесь,
+// зная concepts этого урока, дописываем в сам HTML data-has-link/data-label
+// (строкой, до рендера), чтобы CSS content:attr() отрисовал метку без
+// отдельного DOM-прохода после dangerouslySetInnerHTML.
+function annotateConceptMarks(html: string, concepts: LessonConcept[], gradeNumber: number): string {
+  return html.replace(/<mark data-k="x" data-c="([a-z0-9-]+)">/g, (full, slug: string) => {
+    const concept = concepts.find((c) => c.slug === slug);
+    const occurrences = concept?.occurrences ?? [];
+    // Ни одного вхождения в других классах ещё нет — метка не показывается
+    // вообще (никаких ссылок в пустоту), см. cross-grade-links-feature.md.
+    if (occurrences.length === 0) return full;
+
+    const primary = occurrences[0]; // уже отсортировано: PRIMARY, потом по классу
+    const label =
+      primary.gradeNumber > gradeNumber
+        ? `ещё в ${primary.gradeNumber} кл. — запомни`
+        : primary.gradeNumber < gradeNumber
+          ? `было в ${primary.gradeNumber} кл.`
+          : `${primary.gradeNumber} кл.`;
+    return `<mark data-k="x" data-c="${slug}" data-has-link="true" data-label="${label}">`;
+  });
+}
+
+function TextTab({
+  chunks,
+  concepts,
+  gradeNumber,
+}: {
+  chunks: LessonTextChunk[];
+  concepts: LessonConcept[];
+  gradeNumber: number;
+}) {
+  const router = useRouter();
+  const [openSlug, setOpenSlug] = useState<string | null>(null);
+
   if (chunks.length === 0) {
     return (
       <p className="flex-1 self-center pt-12 text-center text-sm text-muted-foreground">
@@ -146,14 +206,33 @@ function TextTab({ chunks }: { chunks: LessonTextChunk[] }) {
     );
   }
 
+  // Делегированный обработчик: повесить onClick на сам <mark> нельзя — он
+  // рендерится через dangerouslySetInnerHTML, а не React-элементом.
+  function handleTextClick(e: MouseEvent<HTMLDivElement>) {
+    const mark = (e.target as HTMLElement).closest('mark[data-c]') as HTMLElement | null;
+    if (!mark) return;
+    const slug = mark.dataset.c;
+    if (!slug || mark.dataset.hasLink !== "true") return;
+    setOpenSlug((prev) => (prev === slug ? null : slug));
+  }
+
+  const openConcept = openSlug ? concepts.find((c) => c.slug === openSlug) ?? null : null;
+
   return (
-    <div className="lesson-text flex flex-col gap-4 pb-4">
-      {chunks.map((chunk, i) => (
-        <div key={i} className="flex flex-col gap-1">
-          {chunk.heading && <p className="font-semibold">{chunk.heading}</p>}
-          <p className="whitespace-pre-line break-words leading-relaxed" dangerouslySetInnerHTML={{ __html: chunk.html }} />
-        </div>
-      ))}
+    <div className="lesson-text flex flex-col gap-4 pb-4" onClick={handleTextClick}>
+      {chunks.map((chunk, i) => {
+        const annotatedHtml = annotateConceptMarks(chunk.html, concepts, gradeNumber);
+        const hasOpenMarkHere = openSlug !== null && annotatedHtml.includes(`data-c="${openSlug}"`);
+        return (
+          <div key={i} className="flex flex-col gap-1">
+            {chunk.heading && <p className="font-semibold">{chunk.heading}</p>}
+            <p className="whitespace-pre-line break-words leading-relaxed" dangerouslySetInnerHTML={{ __html: annotatedHtml }} />
+            {hasOpenMarkHere && openConcept && (
+              <ConceptPanel concept={openConcept} onOpenLesson={(lessonId) => router.push(`/lesson/${lessonId}`)} />
+            )}
+          </div>
+        );
+      })}
       <style jsx global>{`
         .lesson-text mark[data-k="t"] {
           background: none;
@@ -167,7 +246,52 @@ function TextTab({ chunks }: { chunks: LessonTextChunk[] }) {
           border-radius: 3px;
           padding: 0 2px;
         }
+        .lesson-text mark[data-k="x"] {
+          background: none;
+          color: var(--color-primary, #2563eb);
+          font-weight: 600;
+        }
+        .lesson-text mark[data-k="x"][data-has-link="true"] {
+          cursor: pointer;
+        }
+        .lesson-text mark[data-k="x"][data-has-link="true"]::after {
+          content: attr(data-label);
+          display: inline-block;
+          margin-left: 4px;
+          border-radius: 999px;
+          background: var(--color-secondary, #f1f5f9);
+          padding: 1px 6px;
+          font-size: 0.65rem;
+          font-weight: 500;
+          color: var(--color-muted-foreground, #6b7280);
+          white-space: nowrap;
+          vertical-align: middle;
+        }
       `}</style>
+    </div>
+  );
+}
+
+// Панель прямо под абзацем (не модалка) — раскрывается по тапу на метку
+// понятия, второй тап сворачивает (см. TextTab.handleTextClick).
+function ConceptPanel({ concept, onOpenLesson }: { concept: LessonConcept; onOpenLesson: (lessonId: string) => void }) {
+  return (
+    <div className="flex flex-col gap-2 rounded-xl bg-secondary/60 p-3">
+      <p className="text-xs font-medium text-muted-foreground">«{concept.title}» — встречается также:</p>
+      {concept.occurrences.map((occ) => (
+        <div key={occ.lessonId} className="flex flex-col gap-1.5 rounded-lg bg-background p-2.5">
+          <p className="text-xs font-medium">
+            {occ.gradeNumber} класс — {occ.topicTitle}
+          </p>
+          <p className="text-sm italic leading-relaxed">«{occ.quote}»</p>
+          <button
+            onClick={() => onOpenLesson(occ.lessonId)}
+            className="flex w-fit items-center gap-1 self-start rounded-full bg-secondary px-3 py-1 text-xs text-secondary-foreground"
+          >
+            Открыть урок
+          </button>
+        </div>
+      ))}
     </div>
   );
 }

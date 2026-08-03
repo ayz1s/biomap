@@ -181,6 +181,45 @@ export async function searchTopics(query: string) {
   return topics.map((t) => ({ id: t.id, title: t.title, gradeNumber: t.grade.number }));
 }
 
+// Для каждого сквозного понятия, помеченного в этом уроке, — его вхождения
+// в ДРУГИХ (published) уроках: сначала "основное", потом по классу. См.
+// docs/cross-grade-links-feature.md. Пустой occurrences — понятие пока нигде
+// больше не встречается (фронтенд не должен рисовать ссылку в никуда).
+async function getConceptsForLesson(lessonId: string, conceptOccurrences: { conceptId: string; concept: { title: string } }[]) {
+  const conceptIds = conceptOccurrences.map((o) => o.conceptId);
+  if (conceptIds.length === 0) return [];
+
+  const otherOccurrences = await prisma.conceptOccurrence.findMany({
+    where: { conceptId: { in: conceptIds }, lessonId: { not: lessonId }, lesson: { published: true } },
+    include: { lesson: { include: { topic: true } } },
+  });
+
+  const byConceptId = new Map<string, typeof otherOccurrences>();
+  for (const occ of otherOccurrences) {
+    const list = byConceptId.get(occ.conceptId) ?? [];
+    list.push(occ);
+    byConceptId.set(occ.conceptId, list);
+  }
+  for (const list of byConceptId.values()) {
+    list.sort((a, b) => {
+      if (a.role !== b.role) return a.role === "PRIMARY" ? -1 : 1;
+      return a.gradeNumber - b.gradeNumber;
+    });
+  }
+
+  return conceptOccurrences.map((occ) => ({
+    slug: occ.conceptId,
+    title: occ.concept.title,
+    occurrences: (byConceptId.get(occ.conceptId) ?? []).map((o) => ({
+      lessonId: o.lessonId,
+      gradeNumber: o.gradeNumber,
+      topicTitle: o.lesson.topic.title,
+      role: o.role,
+      quote: o.quote,
+    })),
+  }));
+}
+
 export async function getLessonWithProgress(lessonId: string, userId: string | null) {
   const lesson = await prisma.lesson.findUnique({
     where: { id: lessonId },
@@ -198,6 +237,7 @@ export async function getLessonWithProgress(lessonId: string, userId: string | n
       },
       textChunks: { orderBy: { order: "asc" } },
       topic: { include: { grade: true } },
+      conceptOccurrences: { include: { concept: true } },
     },
   });
   if (!lesson || !lesson.published) return null;
@@ -208,7 +248,9 @@ export async function getLessonWithProgress(lessonId: string, userId: string | n
       })
     : null;
 
-  return { lesson, progress };
+  const concepts = await getConceptsForLesson(lessonId, lesson.conceptOccurrences);
+
+  return { lesson, progress, concepts };
 }
 
 export async function upsertLessonProgress(

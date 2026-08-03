@@ -39,7 +39,15 @@ export async function GET(
   const textChunks = data.lesson.textChunks.map(({ order, heading, html }) => ({ order, heading, html }));
 
   return NextResponse.json({
-    lesson: { id: data.lesson.id, title: data.lesson.title, cards, questions, textChunks },
+    lesson: {
+      id: data.lesson.id,
+      title: data.lesson.title,
+      gradeNumber: data.lesson.topic.grade.number,
+      cards,
+      questions,
+      textChunks,
+      concepts: data.concepts,
+    },
     progress: data.progress,
   });
 }
