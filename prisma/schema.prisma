@@ -11,6 +11,11 @@ enum GradeStatus {
   SOON
 }
 
+enum Language {
+  RU
+  UZ
+}
+
 enum Region {
   ANDIJAN
   BUKHARA
@@ -27,10 +32,11 @@ enum Region {
   KARAKALPAKSTAN
 }
 
-// Шаги регистрации в Telegram-боте (см. src/bot/bot.ts). Заводится явно на NAME
+// Шаги регистрации в Telegram-боте (см. src/bot/bot.ts). Заводится явно на LANGUAGE
 // при создании пользователя через /start; пользователи, созданные другими путями
 // (например, автологин в Mini App), по умолчанию считаются уже DONE.
 enum RegistrationStep {
+  LANGUAGE
   NAME
   AWAITING_NAME_INPUT
   REGION
@@ -59,6 +65,7 @@ model User {
   firstName        String
   username         String?
   region           Region?
+  language         Language         @default(RU)
   registrationStep RegistrationStep @default(DONE)
   createdAt        DateTime         @default(now())
 
@@ -69,21 +76,27 @@ model User {
 }
 
 model Grade {
-  id     String      @id @default(cuid())
-  number Int         @unique
-  status GradeStatus @default(SOON)
+  id       String      @id @default(cuid())
+  number   Int
+  language Language    @default(RU)
+  status   GradeStatus @default(SOON)
 
   topics Topic[]
+
+  @@unique([number, language])
 }
 
 // Предметный раздел для вкладки "По темам" — не привязан к классу, собирает
-// темы одного предмета (напр. Ботаника) из всех классов сразу.
+// темы одного предмета (напр. Ботаника) из всех классов сразу. language
+// разделяет одноимённые (по сути) разделы разных языковых треков — у RU и UZ
+// свои строки TopicCategory, темы каждого языка привязаны к своим.
 model TopicCategory {
-  id       String @id @default(cuid())
+  id       String   @id @default(cuid())
   name     String
   icon     String
   colorKey String
-  order    Int    @default(0)
+  order    Int      @default(0)
+  language Language @default(RU)
 
   topics Topic[]
 }
@@ -186,8 +199,9 @@ model LessonCardStep {
 // см. docs/cross-grade-links-feature.md. Сеется из prisma/data/concepts.ts,
 // по аналогии с TopicCategory ← categories.ts.
 model Concept {
-  id           String @id
+  id           String  @id
   title        String
+  titleUz      String?
   categorySlug String?
 
   occurrences ConceptOccurrence[]
