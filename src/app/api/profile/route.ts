@@ -18,6 +18,7 @@ export async function GET() {
     user: user && {
       firstName: user.firstName,
       username: user.username,
+      language: user.language,
       currentStreak: user.streak?.currentStreak ?? 0,
       completedLessons,
     },

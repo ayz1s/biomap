@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchJson } from "@/lib/api";
 import { ScreenHeader } from "@/components/layout/ScreenHeader";
 import { Card } from "@/components/ui/card";
@@ -9,17 +9,29 @@ import { User } from "lucide-react";
 interface ProfileData {
   firstName: string;
   username?: string | null;
+  language: "RU" | "UZ";
   currentStreak: number;
   completedLessons: number;
 }
 
 export default function ProfilePage() {
+  const queryClient = useQueryClient();
   const { data } = useQuery({
     queryKey: ["profile"],
     queryFn: () => fetchJson<{ user: ProfileData | null }>("/api/profile"),
   });
 
   const user = data?.user;
+
+  async function changeLanguage(language: "RU" | "UZ") {
+    if (!user || user.language === language) return;
+    await fetchJson("/api/profile/language", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ language }),
+    });
+    await queryClient.invalidateQueries();
+  }
 
   return (
     <div className="flex flex-col gap-4 px-4">
@@ -47,6 +59,28 @@ export default function ProfilePage() {
           <p className="text-xs text-muted-foreground">уроков пройдено</p>
         </Card>
       </div>
+
+      <Card className="gap-2 p-4">
+        <p className="text-sm font-medium">Язык обучения</p>
+        <div className="flex gap-2">
+          <button
+            onClick={() => changeLanguage("RU")}
+            className={`flex-1 rounded-lg py-2 text-sm font-medium ${
+              user?.language === "RU" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"
+            }`}
+          >
+            Русский
+          </button>
+          <button
+            onClick={() => changeLanguage("UZ")}
+            className={`flex-1 rounded-lg py-2 text-sm font-medium ${
+              user?.language === "UZ" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"
+            }`}
+          >
+            O'zbekcha
+          </button>
+        </div>
+      </Card>
     </div>
   );
 }

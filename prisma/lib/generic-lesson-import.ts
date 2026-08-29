@@ -1,4 +1,4 @@
-import type { PrismaClient, LessonCardType, QuestionType } from "@prisma/client";
+import type { PrismaClient, LessonCardType, QuestionType, Language } from "@prisma/client";
 import { CONCEPTS } from "../data/concepts";
 
 export type LessonRow = {
@@ -333,6 +333,10 @@ export function validateLesson(lessonId: string, data: LessonJson) {
 // Grade/Topic (новая схема после реструктуризации от 2026-07-23). Не трогает
 // никакие другие уроки, темы, классы или пользовательские данные — только
 // Lesson.id === lessonId.
+export function languageFromLessonId(lessonId: string): Language {
+  return lessonId.endsWith("_UZ") ? "UZ" : "RU";
+}
+
 export async function importLesson(
   prisma: PrismaClient,
   lessonId: string,
@@ -341,7 +345,10 @@ export async function importLesson(
 ) {
   validateLesson(lessonId, data);
 
-  const grade = await prisma.grade.findUniqueOrThrow({ where: { number: opts.gradeNumber } });
+  const language = languageFromLessonId(lessonId);
+  const grade = await prisma.grade.findUniqueOrThrow({
+    where: { number_language: { number: opts.gradeNumber, language } },
+  });
   const topic = await prisma.topic.findUniqueOrThrow({
     where: { gradeId_order: { gradeId: grade.id, order: opts.topicOrder } },
   });

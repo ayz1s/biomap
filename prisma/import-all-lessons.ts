@@ -44,7 +44,7 @@ async function main() {
   const dataDir = path.join(__dirname, "..", "data");
   const files = fs
     .readdirSync(dataDir)
-    .filter((f) => /^bio\d+_l\d+\.json$/.test(f))
+    .filter((f) => /^bio\d+_l\d+(_uz)?\.json$/.test(f))
     .sort();
 
   if (files.length === 0) throw new Error(`Не найдено ни одного data/bioN_lNNN.json в ${dataDir}`);

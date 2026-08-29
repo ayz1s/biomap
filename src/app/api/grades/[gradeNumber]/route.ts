@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCurrentUserId } from "@/lib/session";
+import { getCurrentUserId, getCurrentUserLanguage } from "@/lib/session";
 import { getGradeCurriculum } from "@/lib/queries";
 
 export async function GET(
@@ -8,7 +8,8 @@ export async function GET(
 ) {
   const { gradeNumber } = await params;
   const userId = await getCurrentUserId();
-  const curriculum = await getGradeCurriculum(Number(gradeNumber), userId);
+  const language = await getCurrentUserLanguage(userId);
+  const curriculum = await getGradeCurriculum(Number(gradeNumber), userId, language);
   if (!curriculum) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json(curriculum);
 }

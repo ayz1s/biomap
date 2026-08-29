@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { nextDueDate, nextInterval } from "@/lib/spaced-repetition";
+import type { Language } from "@prisma/client";
 
 async function getCompletedLessonIds(userId: string | null) {
   if (!userId) return new Set<string>();
@@ -12,9 +13,9 @@ async function getCompletedLessonIds(userId: string | null) {
 
 // Вкладка "По темам" — лендинг: список предметных разделов со сквозным
 // прогрессом по всем классам сразу.
-export async function getCategoriesWithProgress(userId: string | null) {
+export async function getCategoriesWithProgress(userId: string | null, language: Language) {
   const categories = await prisma.topicCategory.findMany({
-    where: { language: "RU" },
+    where: { language },
     orderBy: { order: "asc" },
     include: {
       topics: {
@@ -90,9 +91,9 @@ export async function getCategoryDetail(categoryId: string, userId: string | nul
 }
 
 // Вкладка "По классам" — главы и темы одного класса, в порядке учебника.
-export async function getGradeCurriculum(gradeNumber: number, userId: string | null) {
+export async function getGradeCurriculum(gradeNumber: number, userId: string | null, language: Language) {
   const grade = await prisma.grade.findUnique({
-    where: { number_language: { number: gradeNumber, language: "RU" } },
+    where: { number_language: { number: gradeNumber, language } },
     include: {
       topics: {
         orderBy: { order: "asc" },
@@ -168,12 +169,12 @@ export async function getTopicDetail(topicId: string, userId: string | null) {
 }
 
 // Поиск по названию темы для вкладки "По темам" (200-300+ тем — нужен поиск).
-export async function searchTopics(query: string) {
+export async function searchTopics(query: string, language: Language) {
   const q = query.trim();
   if (q.length < 2) return [];
 
   const topics = await prisma.topic.findMany({
-    where: { title: { contains: q, mode: "insensitive" }, grade: { language: "RU" } },
+    where: { title: { contains: q, mode: "insensitive" }, grade: { language } },
     orderBy: [{ gradeId: "asc" }, { order: "asc" }],
     include: { grade: true },
     take: 30,
@@ -358,13 +359,13 @@ export async function getRepetitionSchedule(userId: string) {
   };
 }
 
-export async function getHomeSummary(userId: string | null) {
+export async function getHomeSummary(userId: string | null, language: Language) {
   const inProgress = userId
     ? await prisma.userLessonProgress.findFirst({
         where: {
           userId,
           completed: false,
-          lesson: { published: true, topic: { grade: { language: "RU" } } },
+          lesson: { published: true, topic: { grade: { language } } },
         },
         orderBy: { updatedAt: "desc" },
         include: { lesson: { include: { cards: true } } },
@@ -374,7 +375,7 @@ export async function getHomeSummary(userId: string | null) {
   const fallbackLesson = inProgress
     ? null
     : await prisma.lesson.findFirst({
-        where: { published: true, topic: { grade: { language: "RU" } } },
+        where: { published: true, topic: { grade: { language } } },
         orderBy: { order: "asc" },
         include: { cards: true },
       });
@@ -408,14 +409,14 @@ export async function getHomeSummary(userId: string | null) {
     : 0;
 
   const totalLessons = await prisma.lesson.count({
-    where: { published: true, topic: { grade: { language: "RU" } } },
+    where: { published: true, topic: { grade: { language } } },
   });
   const completedLessons = userId
     ? await prisma.userLessonProgress.count({
         where: {
           userId,
           completed: true,
-          lesson: { published: true, topic: { grade: { language: "RU" } } },
+          lesson: { published: true, topic: { grade: { language } } },
         },
       })
     : 0;

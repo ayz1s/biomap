@@ -1,10 +1,13 @@
 import { create } from "zustand";
 
+export type AppLanguage = "RU" | "UZ";
+
 export interface AppUser {
   id: string;
   telegramId: string;
   firstName: string;
   username?: string | null;
+  language: AppLanguage;
 }
 
 interface AppState {
