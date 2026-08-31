@@ -23,7 +23,7 @@ export function ScreenHeader({
       >
         <ArrowLeft size={22} />
       </button>
-      <h1 className="flex-1 text-xl font-semibold">{title}</h1>
+      <h1 className="flex-1 font-heading text-xl font-semibold">{title}</h1>
       {rightSlot}
     </header>
   );

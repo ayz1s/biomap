@@ -7,7 +7,9 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-manrope), var(--font-geist-sans);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -35,29 +37,33 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* BioMap: спокойный зелёный минимализм, без тёмной темы (см. docs/design-reference.md) */
+/* BioMap: гербарий, не аптека — глубокий лист вместо кнопочного зелёного,
+   бумажный, а не белый фон, и синий как отдельная роль для сквозных понятий
+   (см. прототип редизайна, согласован с пользователем). Без тёмной темы. */
 :root {
-  --background: #f3fbf6;
-  --foreground: #12161a;
+  --background: #f4f6ef;
+  --foreground: #14261c;
   --card: #ffffff;
-  --card-foreground: #12161a;
+  --card-foreground: #14261c;
   --popover: #ffffff;
-  --popover-foreground: #12161a;
-  --primary: #0fa758;
+  --popover-foreground: #14261c;
+  --primary: #1b7a4b;
   --primary-foreground: #ffffff;
-  --secondary: #d6f3e0;
-  --secondary-foreground: #0f4a2a;
-  --muted: #eef3f0;
-  --muted-foreground: #4b5563;
-  --accent: #d6f3e0;
-  --accent-foreground: #0f4a2a;
+  --secondary: #dcefe0;
+  --secondary-foreground: #135c39;
+  --muted: #eaeee3;
+  --muted-foreground: #57685a;
+  --accent: #f5e3cd;
+  --accent-foreground: #7a4c17;
+  --info: #2d6e8e;
+  --info-foreground: #ffffff;
   --destructive: #dc2626;
-  --warning: #f59e0b;
-  --success: #0fa758;
-  --border: #ccd5cf;
-  --input: #ccd5cf;
-  --ring: #0fa758;
-  --radius: 0.9rem;
+  --warning: #c97b2e;
+  --success: #1b7a4b;
+  --border: #dde3d8;
+  --input: #dde3d8;
+  --ring: #1b7a4b;
+  --radius: 1rem;
 }
 
 @layer base {

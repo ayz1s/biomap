@@ -255,7 +255,7 @@ function TextTab({
         }
         .lesson-text mark[data-k="x"] {
           background: none;
-          color: var(--color-primary, #2563eb);
+          color: var(--color-info, #2d6e8e);
           font-weight: 600;
         }
         .lesson-text mark[data-k="x"][data-has-link="true"] {
@@ -266,11 +266,11 @@ function TextTab({
           display: inline-block;
           margin-left: 4px;
           border-radius: 999px;
-          background: var(--color-secondary, #f1f5f9);
+          background: color-mix(in srgb, var(--color-info, #2d6e8e) 14%, transparent);
           padding: 1px 6px;
           font-size: 0.65rem;
           font-weight: 500;
-          color: var(--color-muted-foreground, #6b7280);
+          color: var(--color-info, #2d6e8e);
           white-space: nowrap;
           vertical-align: middle;
         }
@@ -291,8 +291,8 @@ function ConceptPanel({
   t: T;
 }) {
   return (
-    <div className="flex flex-col gap-2 rounded-xl bg-secondary/60 p-3">
-      <p className="text-xs font-medium text-muted-foreground">{t.lesson.alsoAppearsIn(concept.title)}</p>
+    <div className="flex flex-col gap-2 rounded-xl bg-info/10 p-3">
+      <p className="text-xs font-medium text-info">{t.lesson.alsoAppearsIn(concept.title)}</p>
       {concept.occurrences.map((occ) => (
         <div key={occ.lessonId} className="flex flex-col gap-1.5 rounded-lg bg-background p-2.5">
           <p className="text-xs font-medium">
