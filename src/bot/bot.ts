@@ -1,51 +1,64 @@
 import { Bot, InlineKeyboard, Keyboard, type Context } from "grammy";
+import type { Language } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { REGIONS, regionLabel, isRegionCode } from "./regions";
+import { LANGUAGES, isLanguageCode } from "./languages";
+import { BOT_STRINGS } from "./strings";
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 if (!token) throw new Error("TELEGRAM_BOT_TOKEN is not set");
 
 export const bot = new Bot(token);
 
-const WELCOME = `Привет! Я — бот BioMap 🌱
-
-Помогаю абитуриентам готовиться по биологии: собираю темы школьной программы в единую систему, объясняю их простыми микроуроками и слежу за твоим прогрессом — с 5 по 11 класс.
-
-Сначала давай зарегистрируемся — это займёт полминуты.`;
-
-function nameConfirmKeyboard() {
-  return new InlineKeyboard().text("✅ Да, всё верно", "confirm_name").text("✏️ Изменить", "edit_name");
+function languageKeyboard() {
+  const kb = new InlineKeyboard();
+  LANGUAGES.forEach((l) => kb.text(l.label, `language:${l.code}`));
+  return kb;
 }
 
-function regionKeyboard() {
+function nameConfirmKeyboard(language: Language) {
+  const s = BOT_STRINGS[language];
+  return new InlineKeyboard().text(s.nameConfirmYes, "confirm_name").text(s.nameConfirmEdit, "edit_name");
+}
+
+function regionKeyboard(language: Language) {
   const kb = new InlineKeyboard();
   REGIONS.forEach((r, i) => {
-    kb.text(r.label, `region:${r.code}`);
+    kb.text(regionLabel(r.code, language), `region:${r.code}`);
     if (i % 2 === 1) kb.row();
   });
   return kb;
 }
 
-async function askNameConfirm(ctx: Context, firstName: string) {
-  await ctx.reply(`Тебя зовут *${firstName}* — всё верно?`, {
-    parse_mode: "Markdown",
-    reply_markup: nameConfirmKeyboard(),
+async function askLanguage(ctx: Context) {
+  // Вопрос "на каком языке?" — единственное сообщение бота, которое всегда
+  // задаётся до того, как язык вообще известен, поэтому оно не тянется из
+  // BOT_STRINGS[language] — язык ещё не выбран.
+  await ctx.reply(`${BOT_STRINGS.RU.askLanguage} / ${BOT_STRINGS.UZ.askLanguage}`, {
+    reply_markup: languageKeyboard(),
   });
 }
 
-async function askRegion(ctx: Context) {
-  await ctx.reply("Из какой ты области?", { reply_markup: regionKeyboard() });
+async function askNameConfirm(ctx: Context, firstName: string, language: Language) {
+  await ctx.reply(BOT_STRINGS[language].nameConfirmQuestion(firstName), {
+    parse_mode: "Markdown",
+    reply_markup: nameConfirmKeyboard(language),
+  });
+}
+
+async function askRegion(ctx: Context, language: Language) {
+  await ctx.reply(BOT_STRINGS[language].askRegion, { reply_markup: regionKeyboard(language) });
 }
 
 // Обычная (не inline) клавиатура с web_app-кнопкой: в отличие от инлайн-кнопки
 // в тексте сообщения или мелкой кнопки в меню бота, она закреплена прямо над
 // полем ввода и видна всегда — абитуриенту не нужно её искать.
-function openAppKeyboard() {
+function openAppKeyboard(language: Language) {
   // Фолбэк на известный прод-домен: переменная окружения ещё не добавлена в
   // Vercel (не наш доступ), а без неё кнопка молча пропадала бы — как раз то,
   // что нужно убрать.
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://biomap-zeta.vercel.app";
-  return new Keyboard().webApp("🚀 Открыть BioMap", appUrl).resized().persistent();
+  return new Keyboard().webApp(BOT_STRINGS[language].openApp, appUrl).resized().persistent();
 }
 
 // Кнопки на уже отправленном сообщении убираем best-effort: сообщение могло
@@ -69,11 +82,14 @@ bot.command("start", async (ctx) => {
       telegramId: String(tgUser.id),
       firstName: tgUser.first_name,
       username: tgUser.username,
-      registrationStep: "NAME",
+      registrationStep: "LANGUAGE",
     },
   });
 
-  await ctx.reply(WELCOME);
+  // Пока язык не выбран (самый первый /start у нового пользователя) —
+  // приветствие на русском по умолчанию. Дальше используем сохранённый язык.
+  const welcomeLanguage: Language = user.registrationStep === "LANGUAGE" ? "RU" : user.language;
+  await ctx.reply(BOT_STRINGS[welcomeLanguage].welcome);
 
   // Источник истины — region, а не registrationStep: у пользователей, заведённых
   // через Mini App (telegram-auth upsert), step по умолчанию DONE, а region пуст.
@@ -81,39 +97,60 @@ bot.command("start", async (ctx) => {
   // спрашивал область.
   if (user.region) {
     await ctx.reply(
-      `Ты уже зарегистрирован(а) 🙌\n👤 Имя: ${user.firstName}\n📍 Область: ${regionLabel(user.region)}`,
-      { reply_markup: openAppKeyboard() },
+      BOT_STRINGS[user.language].alreadyRegistered(user.firstName, regionLabel(user.region, user.language)),
+      { reply_markup: openAppKeyboard(user.language) },
     );
     return;
   }
 
   if (user.registrationStep === "REGION") {
-    await askRegion(ctx);
+    await askRegion(ctx, user.language);
+    return;
+  }
+
+  if (user.registrationStep === "LANGUAGE") {
+    await askLanguage(ctx);
     return;
   }
 
   // NAME, AWAITING_NAME_INPUT или унаследованный DONE без region — начинаем/повторяем с подтверждения имени
-  await askNameConfirm(ctx, user.firstName);
+  await askNameConfirm(ctx, user.firstName, user.language);
+});
+
+bot.callbackQuery(/^language:(.+)$/, async (ctx) => {
+  const code = ctx.match[1];
+  if (!isLanguageCode(code)) {
+    await ctx.answerCallbackQuery();
+    return;
+  }
+
+  const user = await prisma.user.update({
+    where: { telegramId: String(ctx.from.id) },
+    data: { language: code, registrationStep: "NAME" },
+  });
+  await ctx.answerCallbackQuery();
+  await clearKeyboard(ctx);
+  await askNameConfirm(ctx, user.firstName, user.language);
 });
 
 bot.callbackQuery("confirm_name", async (ctx) => {
-  await prisma.user.update({
+  const user = await prisma.user.update({
     where: { telegramId: String(ctx.from.id) },
     data: { registrationStep: "REGION" },
   });
   await ctx.answerCallbackQuery();
   await clearKeyboard(ctx);
-  await askRegion(ctx);
+  await askRegion(ctx, user.language);
 });
 
 bot.callbackQuery("edit_name", async (ctx) => {
-  await prisma.user.update({
+  const user = await prisma.user.update({
     where: { telegramId: String(ctx.from.id) },
     data: { registrationStep: "AWAITING_NAME_INPUT" },
   });
   await ctx.answerCallbackQuery();
   await clearKeyboard(ctx);
-  await ctx.reply("Хорошо, напиши, как к тебе обращаться:");
+  await ctx.reply(BOT_STRINGS[user.language].editNamePrompt);
 });
 
 bot.callbackQuery(/^region:(.+)$/, async (ctx) => {
@@ -131,10 +168,8 @@ bot.callbackQuery(/^region:(.+)$/, async (ctx) => {
   await clearKeyboard(ctx);
 
   await ctx.reply(
-    `Регистрация завершена ✅\n\n👤 Имя: ${user.firstName}\n📍 Область: ${regionLabel(
-      code,
-    )}\n\nМожно начинать готовиться! Кнопка входа теперь всегда под рукой внизу 👇`,
-    { reply_markup: openAppKeyboard() },
+    BOT_STRINGS[user.language].registrationDone(user.firstName, regionLabel(code, user.language)),
+    { reply_markup: openAppKeyboard(user.language) },
   );
 });
 
@@ -146,10 +181,10 @@ bot.on("message:text", async (ctx) => {
   const newName = ctx.message.text.trim().slice(0, 100);
   if (!newName) return;
 
-  await prisma.user.update({
+  const updated = await prisma.user.update({
     where: { telegramId },
     data: { firstName: newName, registrationStep: "REGION" },
   });
-  await ctx.reply(`Приятно познакомиться, ${newName}!`);
-  await askRegion(ctx);
+  await ctx.reply(BOT_STRINGS[updated.language].niceToMeetYou(newName));
+  await askRegion(ctx, updated.language);
 });
