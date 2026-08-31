@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchJson } from "@/lib/api";
 import { ScreenHeader } from "@/components/layout/ScreenHeader";
 import { Card } from "@/components/ui/card";
+import { useT } from "@/lib/i18n";
 
 interface RepetitionItem {
   lessonId: string;
@@ -14,6 +15,7 @@ interface RepetitionItem {
 }
 
 export default function RepetitionPage() {
+  const t = useT();
   const { data } = useQuery({
     queryKey: ["repetition"],
     queryFn: () =>
@@ -24,16 +26,16 @@ export default function RepetitionPage() {
 
   return (
     <div className="flex flex-col gap-4 px-4">
-      <ScreenHeader title="Повторение" />
+      <ScreenHeader title={t.nav.repetition} />
 
       <div>
-        <p className="text-sm font-medium">Сегодня ({items.length} тем)</p>
-        <p className="text-xs text-muted-foreground">Изучай по 10–15 минут</p>
+        <p className="text-sm font-medium">{t.repetition.todayCount(items.length)}</p>
+        <p className="text-xs text-muted-foreground">{t.repetition.hint}</p>
       </div>
 
       <div className="flex flex-col gap-2">
         {items.length === 0 && (
-          <p className="text-sm text-muted-foreground">На сегодня повторений нет.</p>
+          <p className="text-sm text-muted-foreground">{t.repetition.empty}</p>
         )}
         {items.map((item) => (
           <div
@@ -49,7 +51,7 @@ export default function RepetitionPage() {
               </p>
             </div>
             <Link href={`/lesson/${item.lessonId}`} className="text-sm font-medium text-primary">
-              Повторить
+              {t.repetition.repeatButton}
             </Link>
           </div>
         ))}
@@ -58,8 +60,8 @@ export default function RepetitionPage() {
       <Card className="flex-row items-center gap-3 bg-secondary p-4 text-secondary-foreground">
         <span className="text-2xl">🔥</span>
         <div>
-          <p className="font-medium">Серия: {data?.currentStreak ?? 0} дней</p>
-          <p className="text-sm">Ты на верном пути!</p>
+          <p className="font-medium">{t.repetition.streak(data?.currentStreak ?? 0)}</p>
+          <p className="text-sm">{t.repetition.onTrack}</p>
         </div>
       </Card>
     </div>

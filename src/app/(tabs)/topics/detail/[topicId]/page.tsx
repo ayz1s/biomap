@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { CheckCircle2, Circle } from "lucide-react";
 import { fetchJson } from "@/lib/api";
 import { ScreenHeader } from "@/components/layout/ScreenHeader";
+import { useT } from "@/lib/i18n";
 
 interface TopicDetail {
   id: string;
@@ -23,6 +24,7 @@ export default function TopicDetailPage({
   params: Promise<{ topicId: string }>;
 }) {
   const { topicId } = use(params);
+  const t = useT();
   const { data } = useQuery({
     queryKey: ["topic", topicId],
     queryFn: () => fetchJson<{ topic: TopicDetail }>(`/api/topics/${topicId}`),
@@ -36,13 +38,13 @@ export default function TopicDetailPage({
       {topic && (
         <>
           <p className="text-sm text-muted-foreground">
-            {topic.gradeNumber} класс · {topic.chapterTitle}
+            {t.classes.detailTitle(topic.gradeNumber)} · {topic.chapterTitle}
             {topic.categoryName ? ` · ${topic.categoryName}` : ""}
           </p>
 
           {topic.lessons.length === 0 ? (
             <div className="flex h-11 items-center justify-center rounded-xl bg-muted font-medium text-muted-foreground">
-              Скоро
+              {t.common.soon}
             </div>
           ) : (
             <div className="flex flex-col gap-2">
@@ -65,7 +67,7 @@ export default function TopicDetailPage({
 
           {topic.connections.length > 0 && (
             <div className="rounded-xl bg-secondary p-3 text-sm text-secondary-foreground">
-              Связано с темой «{topic.connections[0].toTopicName}»: {topic.connections[0].description}
+              {t.topicDetail.connectedTo(topic.connections[0].toTopicName, topic.connections[0].description)}
             </div>
           )}
         </>

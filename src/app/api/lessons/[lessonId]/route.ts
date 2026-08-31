@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCurrentUserId } from "@/lib/session";
+import { getCurrentUserId, getCurrentUserLanguage } from "@/lib/session";
 import { getLessonWithProgress } from "@/lib/queries";
 
 export async function GET(
@@ -8,7 +8,8 @@ export async function GET(
 ) {
   const { lessonId } = await params;
   const userId = await getCurrentUserId();
-  const data = await getLessonWithProgress(lessonId, userId);
+  const language = await getCurrentUserLanguage(userId);
+  const data = await getLessonWithProgress(lessonId, userId, language);
   if (!data) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   // Явно перечисляем поля наружу: canonicalId/sourcePages — служебная трассировка

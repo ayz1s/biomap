@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchJson } from "@/lib/api";
 import { ScreenHeader } from "@/components/layout/ScreenHeader";
 import { Progress } from "@/components/ui/progress";
+import { useT } from "@/lib/i18n";
 
 interface TopicSummary {
   id: string;
@@ -26,6 +27,7 @@ export default function GradeCurriculumPage({
   params: Promise<{ gradeNumber: string }>;
 }) {
   const { gradeNumber } = use(params);
+  const t = useT();
   const { data } = useQuery({
     queryKey: ["grade-curriculum", gradeNumber],
     queryFn: () => fetchJson<GradeCurriculum>(`/api/grades/${gradeNumber}`),
@@ -33,7 +35,7 @@ export default function GradeCurriculumPage({
 
   return (
     <div className="flex flex-col gap-4 px-4">
-      <ScreenHeader title={`${gradeNumber} класс`} />
+      <ScreenHeader title={t.classes.detailTitle(gradeNumber)} />
 
       <div className="flex flex-col gap-5">
         {data?.chapters.map((chapter) => (
@@ -54,7 +56,7 @@ export default function GradeCurriculumPage({
                       {topic.hasLessons ? (
                         <Progress value={progress} className="mt-1.5 h-1.5" />
                       ) : (
-                        <p className="mt-0.5 text-xs text-muted-foreground">Скоро</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">{t.common.soon}</p>
                       )}
                     </div>
                   </div>

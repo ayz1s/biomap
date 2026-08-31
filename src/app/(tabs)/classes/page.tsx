@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchJson } from "@/lib/api";
 import { ScreenHeader } from "@/components/layout/ScreenHeader";
 import { Card } from "@/components/ui/card";
+import { useT } from "@/lib/i18n";
 
 interface Grade {
   id: string;
@@ -13,6 +14,7 @@ interface Grade {
 }
 
 export default function ClassesPage() {
+  const t = useT();
   const { data } = useQuery({
     queryKey: ["grades"],
     queryFn: () => fetchJson<{ grades: Grade[] }>("/api/grades"),
@@ -20,17 +22,15 @@ export default function ClassesPage() {
 
   return (
     <div className="flex flex-col gap-4 px-4">
-      <ScreenHeader title="По классам" />
-      <p className="text-sm text-muted-foreground">
-        Программа каждого класса по главам — так же, как в учебнике.
-      </p>
+      <ScreenHeader title={t.classes.title} />
+      <p className="text-sm text-muted-foreground">{t.classes.subtitle}</p>
 
       <div className="grid grid-cols-3 gap-3">
         {(data?.grades ?? []).map((grade) => (
           <Link key={grade.id} href={`/classes/${grade.number}`}>
             <Card className="items-center gap-1 p-4">
               <p className="text-xl font-semibold">{grade.number}</p>
-              <p className="text-xs text-muted-foreground">класс</p>
+              <p className="text-xs text-muted-foreground">{t.common.grade}</p>
             </Card>
           </Link>
         ))}

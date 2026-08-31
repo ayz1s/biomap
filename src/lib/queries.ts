@@ -187,12 +187,20 @@ export async function searchTopics(query: string, language: Language) {
 // в ДРУГИХ (published) уроках: сначала "основное", потом по классу. См.
 // docs/cross-grade-links-feature.md. Пустой occurrences — понятие пока нигде
 // больше не встречается (фронтенд не должен рисовать ссылку в никуда).
-async function getConceptsForLesson(lessonId: string, conceptOccurrences: { conceptId: string; concept: { title: string } }[]) {
+async function getConceptsForLesson(
+  lessonId: string,
+  conceptOccurrences: { conceptId: string; concept: { title: string; titleUz: string | null } }[],
+  language: Language,
+) {
   const conceptIds = conceptOccurrences.map((o) => o.conceptId);
   if (conceptIds.length === 0) return [];
 
   const otherOccurrences = await prisma.conceptOccurrence.findMany({
-    where: { conceptId: { in: conceptIds }, lessonId: { not: lessonId }, lesson: { published: true } },
+    where: {
+      conceptId: { in: conceptIds },
+      lessonId: { not: lessonId },
+      lesson: { published: true, topic: { grade: { language } } },
+    },
     include: { lesson: { include: { topic: true } } },
   });
 
@@ -211,7 +219,7 @@ async function getConceptsForLesson(lessonId: string, conceptOccurrences: { conc
 
   return conceptOccurrences.map((occ) => ({
     slug: occ.conceptId,
-    title: occ.concept.title,
+    title: language === "UZ" ? (occ.concept.titleUz ?? occ.concept.title) : occ.concept.title,
     occurrences: (byConceptId.get(occ.conceptId) ?? []).map((o) => ({
       lessonId: o.lessonId,
       gradeNumber: o.gradeNumber,
@@ -222,7 +230,7 @@ async function getConceptsForLesson(lessonId: string, conceptOccurrences: { conc
   }));
 }
 
-export async function getLessonWithProgress(lessonId: string, userId: string | null) {
+export async function getLessonWithProgress(lessonId: string, userId: string | null, language: Language) {
   const lesson = await prisma.lesson.findUnique({
     where: { id: lessonId },
     include: {
@@ -250,7 +258,7 @@ export async function getLessonWithProgress(lessonId: string, userId: string | n
       })
     : null;
 
-  const concepts = await getConceptsForLesson(lessonId, lesson.conceptOccurrences);
+  const concepts = await getConceptsForLesson(lessonId, lesson.conceptOccurrences, language);
 
   return { lesson, progress, concepts };
 }

@@ -5,6 +5,7 @@ import { fetchJson } from "@/lib/api";
 import { ScreenHeader } from "@/components/layout/ScreenHeader";
 import { Card } from "@/components/ui/card";
 import { User } from "lucide-react";
+import { useT } from "@/lib/i18n";
 
 interface ProfileData {
   firstName: string;
@@ -16,6 +17,7 @@ interface ProfileData {
 
 export default function ProfilePage() {
   const queryClient = useQueryClient();
+  const t = useT();
   const { data } = useQuery({
     queryKey: ["profile"],
     queryFn: () => fetchJson<{ user: ProfileData | null }>("/api/profile"),
@@ -35,14 +37,14 @@ export default function ProfilePage() {
 
   return (
     <div className="flex flex-col gap-4 px-4">
-      <ScreenHeader title="Профиль" />
+      <ScreenHeader title={t.nav.profile} />
 
       <div className="flex items-center gap-3">
         <div className="flex h-14 w-14 items-center justify-center rounded-full bg-secondary text-secondary-foreground">
           <User size={26} />
         </div>
         <div>
-          <p className="text-lg font-semibold">{user?.firstName ?? "Ученик"}</p>
+          <p className="text-lg font-semibold">{user?.firstName ?? t.profile.defaultName}</p>
           {user?.username && <p className="text-sm text-muted-foreground">@{user.username}</p>}
         </div>
       </div>
@@ -51,17 +53,17 @@ export default function ProfilePage() {
         <Card className="items-center gap-1 p-4">
           <span className="text-2xl">🔥</span>
           <p className="text-lg font-semibold">{user?.currentStreak ?? 0}</p>
-          <p className="text-xs text-muted-foreground">дней подряд</p>
+          <p className="text-xs text-muted-foreground">{t.profile.streakDays}</p>
         </Card>
         <Card className="items-center gap-1 p-4">
           <span className="text-2xl">✅</span>
           <p className="text-lg font-semibold">{user?.completedLessons ?? 0}</p>
-          <p className="text-xs text-muted-foreground">уроков пройдено</p>
+          <p className="text-xs text-muted-foreground">{t.profile.lessonsDone}</p>
         </Card>
       </div>
 
       <Card className="gap-2 p-4">
-        <p className="text-sm font-medium">Язык обучения</p>
+        <p className="text-sm font-medium">{t.profile.language}</p>
         <div className="flex gap-2">
           <button
             onClick={() => changeLanguage("RU")}

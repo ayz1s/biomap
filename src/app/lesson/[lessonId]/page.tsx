@@ -19,6 +19,7 @@ import {
   LayoutGrid,
 } from "lucide-react";
 import { fetchJson } from "@/lib/api";
+import { useT } from "@/lib/i18n";
 
 type CardType =
   | "MAIN_IDEA"
@@ -84,17 +85,12 @@ interface LessonData {
 }
 
 type TabKey = "text" | "schemes" | "cards" | "questions";
-
-const TABS: { key: TabKey; label: string; icon: typeof FileText }[] = [
-  { key: "text", label: "Текст", icon: FileText },
-  { key: "schemes", label: "Схемы", icon: Workflow },
-  { key: "cards", label: "Карточки", icon: LayoutGrid },
-  { key: "questions", label: "Вопросы", icon: HelpCircle },
-];
+type T = ReturnType<typeof useT>;
 
 export default function LessonPage({ params }: { params: Promise<{ lessonId: string }> }) {
   const { lessonId } = use(params);
   const router = useRouter();
+  const t = useT();
   const { data } = useQuery({
     queryKey: ["lesson", lessonId],
     queryFn: () => fetchJson<LessonData>(`/api/lessons/${lessonId}`),
@@ -109,6 +105,13 @@ export default function LessonPage({ params }: { params: Promise<{ lessonId: str
 
   const { title } = data.lesson;
 
+  const TABS: { key: TabKey; label: string; icon: typeof FileText }[] = [
+    { key: "text", label: t.lesson.tabText, icon: FileText },
+    { key: "schemes", label: t.lesson.tabSchemes, icon: Workflow },
+    { key: "cards", label: t.lesson.tabCards, icon: LayoutGrid },
+    { key: "questions", label: t.lesson.tabQuestions, icon: HelpCircle },
+  ];
+
   function selectTab(tab: TabKey) {
     if (tab === "questions") {
       router.push(`/test/${lessonId}`);
@@ -120,7 +123,7 @@ export default function LessonPage({ params }: { params: Promise<{ lessonId: str
   return (
     <div className="flex min-h-full flex-col gap-4 px-4 pt-4">
       <div className="flex items-center gap-3">
-        <button onClick={() => router.back()} aria-label="Назад" className="flex h-9 w-9 items-center justify-center">
+        <button onClick={() => router.back()} aria-label={t.common.back} className="flex h-9 w-9 items-center justify-center">
           <ArrowLeft size={22} />
         </button>
         <h1 className="flex-1 truncate text-lg font-semibold">{title}</h1>
@@ -146,11 +149,11 @@ export default function LessonPage({ params }: { params: Promise<{ lessonId: str
 
       <div className="flex flex-1 flex-col">
         {activeTab === "text" && (
-          <TextTab chunks={data.lesson.textChunks} concepts={data.lesson.concepts} gradeNumber={data.lesson.gradeNumber} />
+          <TextTab chunks={data.lesson.textChunks} concepts={data.lesson.concepts} gradeNumber={data.lesson.gradeNumber} t={t} />
         )}
-        {activeTab === "schemes" && <SchemesTab cards={data.lesson.cards} />}
+        {activeTab === "schemes" && <SchemesTab cards={data.lesson.cards} t={t} />}
         {activeTab === "cards" && (
-          <CardsTab lessonId={lessonId} cards={data.lesson.cards} progress={data.progress} router={router} />
+          <CardsTab lessonId={lessonId} cards={data.lesson.cards} progress={data.progress} router={router} t={t} />
         )}
       </div>
     </div>
@@ -167,7 +170,7 @@ export default function LessonPage({ params }: { params: Promise<{ lessonId: str
 // зная concepts этого урока, дописываем в сам HTML data-has-link/data-label
 // (строкой, до рендера), чтобы CSS content:attr() отрисовал метку без
 // отдельного DOM-прохода после dangerouslySetInnerHTML.
-function annotateConceptMarks(html: string, concepts: LessonConcept[], gradeNumber: number): string {
+function annotateConceptMarks(html: string, concepts: LessonConcept[], gradeNumber: number, t: T): string {
   return html.replace(/<mark data-k="x" data-c="([a-z0-9-]+)">/g, (full, slug: string) => {
     const concept = concepts.find((c) => c.slug === slug);
     const occurrences = concept?.occurrences ?? [];
@@ -178,10 +181,10 @@ function annotateConceptMarks(html: string, concepts: LessonConcept[], gradeNumb
     const primary = occurrences[0]; // уже отсортировано: PRIMARY, потом по классу
     const label =
       primary.gradeNumber > gradeNumber
-        ? `ещё в ${primary.gradeNumber} кл. — запомни`
+        ? t.lesson.gradeElsewhere(primary.gradeNumber)
         : primary.gradeNumber < gradeNumber
-          ? `было в ${primary.gradeNumber} кл.`
-          : `${primary.gradeNumber} кл.`;
+          ? t.lesson.gradeBefore(primary.gradeNumber)
+          : t.lesson.gradeSame(primary.gradeNumber);
     return `<mark data-k="x" data-c="${slug}" data-has-link="true" data-label="${label}">`;
   });
 }
@@ -190,10 +193,12 @@ function TextTab({
   chunks,
   concepts,
   gradeNumber,
+  t,
 }: {
   chunks: LessonTextChunk[];
   concepts: LessonConcept[];
   gradeNumber: number;
+  t: T;
 }) {
   const router = useRouter();
   const [openSlug, setOpenSlug] = useState<string | null>(null);
@@ -201,7 +206,7 @@ function TextTab({
   if (chunks.length === 0) {
     return (
       <p className="flex-1 self-center pt-12 text-center text-sm text-muted-foreground">
-        Текст параграфа для этого урока пока не добавлен.
+        {t.lesson.noText}
       </p>
     );
   }
@@ -221,14 +226,14 @@ function TextTab({
   return (
     <div className="lesson-text flex flex-col gap-4 pb-4" onClick={handleTextClick}>
       {chunks.map((chunk, i) => {
-        const annotatedHtml = annotateConceptMarks(chunk.html, concepts, gradeNumber);
+        const annotatedHtml = annotateConceptMarks(chunk.html, concepts, gradeNumber, t);
         const hasOpenMarkHere = openSlug !== null && annotatedHtml.includes(`data-c="${openSlug}"`);
         return (
           <div key={i} className="flex flex-col gap-1">
             {chunk.heading && <p className="font-semibold">{chunk.heading}</p>}
             <p className="whitespace-pre-line break-words leading-relaxed" dangerouslySetInnerHTML={{ __html: annotatedHtml }} />
             {hasOpenMarkHere && openConcept && (
-              <ConceptPanel concept={openConcept} onOpenLesson={(lessonId) => router.push(`/lesson/${lessonId}`)} />
+              <ConceptPanel concept={openConcept} onOpenLesson={(lessonId) => router.push(`/lesson/${lessonId}`)} t={t} />
             )}
           </div>
         );
@@ -274,21 +279,29 @@ function TextTab({
 
 // Панель прямо под абзацем (не модалка) — раскрывается по тапу на метку
 // понятия, второй тап сворачивает (см. TextTab.handleTextClick).
-function ConceptPanel({ concept, onOpenLesson }: { concept: LessonConcept; onOpenLesson: (lessonId: string) => void }) {
+function ConceptPanel({
+  concept,
+  onOpenLesson,
+  t,
+}: {
+  concept: LessonConcept;
+  onOpenLesson: (lessonId: string) => void;
+  t: T;
+}) {
   return (
     <div className="flex flex-col gap-2 rounded-xl bg-secondary/60 p-3">
-      <p className="text-xs font-medium text-muted-foreground">«{concept.title}» — встречается также:</p>
+      <p className="text-xs font-medium text-muted-foreground">{t.lesson.alsoAppearsIn(concept.title)}</p>
       {concept.occurrences.map((occ) => (
         <div key={occ.lessonId} className="flex flex-col gap-1.5 rounded-lg bg-background p-2.5">
           <p className="text-xs font-medium">
-            {occ.gradeNumber} класс — {occ.topicTitle}
+            {t.classes.detailTitle(occ.gradeNumber)} — {occ.topicTitle}
           </p>
           <p className="text-sm italic leading-relaxed">«{occ.quote}»</p>
           <button
             onClick={() => onOpenLesson(occ.lessonId)}
             className="flex w-fit items-center gap-1 self-start rounded-full bg-secondary px-3 py-1 text-xs text-secondary-foreground"
           >
-            Открыть урок
+            {t.lesson.openLesson}
           </button>
         </div>
       ))}
@@ -300,13 +313,13 @@ function ConceptPanel({ concept, onOpenLesson }: { concept: LessonConcept; onOpe
 // Все схемы урока подряд (и привязанные к карточке, и нет) — отдельный
 // полный список, независимо от того, показываются ли они ещё и иконкой
 // на карточке-первоисточнике во вкладке "Карточки".
-function SchemesTab({ cards }: { cards: LessonCard[] }) {
+function SchemesTab({ cards, t }: { cards: LessonCard[]; t: T }) {
   const schemes = cards.filter((c) => c.type === "ILLUSTRATION");
 
   if (schemes.length === 0) {
     return (
       <p className="flex-1 self-center pt-12 text-center text-sm text-muted-foreground">
-        Схем для этого урока пока нет.
+        {t.lesson.noSchemes}
       </p>
     );
   }
@@ -332,11 +345,13 @@ function CardsTab({
   cards,
   progress,
   router,
+  t,
 }: {
   lessonId: string;
   cards: LessonCard[];
   progress: { currentCardIndex: number } | null;
   router: ReturnType<typeof useRouter>;
+  t: T;
 }) {
   const [index, setIndex] = useState(0);
 
@@ -389,7 +404,7 @@ function CardsTab({
       <div className="flex flex-1 items-center">
         {/* key=card.id — под-шаг/контекст/оверлей схемы сбрасываются сами
             при переходе на другую карточку, без ручных эффектов сброса. */}
-        <LessonCardView key={card.id} card={card} anchoredScheme={anchoredScheme} />
+        <LessonCardView key={card.id} card={card} anchoredScheme={anchoredScheme} t={t} />
       </div>
 
       <div className="flex items-center justify-between pb-4">
@@ -398,13 +413,13 @@ function CardsTab({
           disabled={safeIndex === 0}
           className="flex items-center gap-1 text-muted-foreground disabled:opacity-30"
         >
-          <ArrowLeft size={18} /> Назад
+          <ArrowLeft size={18} /> {t.common.back}
         </button>
         <span className="text-sm text-muted-foreground">
           {safeIndex + 1} / {mainCards.length}
         </span>
         <button onClick={goNext} className="flex items-center gap-1 font-medium text-primary">
-          {isLast ? "Начать тест" : "Далее"} <ArrowRight size={18} />
+          {isLast ? t.lesson.startTest : t.lesson.next} <ArrowRight size={18} />
         </button>
       </div>
     </div>
@@ -474,7 +489,15 @@ function SchemeChain({ card }: { card: LessonCard }) {
   );
 }
 
-function LessonCardView({ card, anchoredScheme }: { card: LessonCard; anchoredScheme: LessonCard | null }) {
+function LessonCardView({
+  card,
+  anchoredScheme,
+  t,
+}: {
+  card: LessonCard;
+  anchoredScheme: LessonCard | null;
+  t: T;
+}) {
   const [schemeOpen, setSchemeOpen] = useState(false);
 
   if (card.type === "ILLUSTRATION") {
@@ -495,7 +518,7 @@ function LessonCardView({ card, anchoredScheme }: { card: LessonCard; anchoredSc
   return (
     <div className="flex w-full flex-col gap-2">
       {card.steps.length > 0 ? (
-        <StepperCard icon={icon} className={className} card={card} />
+        <StepperCard icon={icon} className={className} card={card} t={t} />
       ) : (
         <PlainCard icon={icon} className={className} card={card} />
       )}
@@ -503,10 +526,10 @@ function LessonCardView({ card, anchoredScheme }: { card: LessonCard; anchoredSc
       {anchoredScheme && (
         <button
           onClick={() => setSchemeOpen(true)}
-          aria-label="Показать схему"
+          aria-label={t.lesson.showScheme}
           className="flex w-fit items-center gap-1 self-end rounded-full bg-secondary px-3 py-1 text-xs text-secondary-foreground"
         >
-          <Workflow size={14} /> Схема
+          <Workflow size={14} /> {t.lesson.schemeLabel}
         </button>
       )}
 
@@ -515,7 +538,7 @@ function LessonCardView({ card, anchoredScheme }: { card: LessonCard; anchoredSc
           <div className="w-full rounded-2xl bg-card p-4">
             <div className="mb-3 flex items-center justify-between">
               <p className="text-sm font-medium">{anchoredScheme.title}</p>
-              <button onClick={() => setSchemeOpen(false)} aria-label="Закрыть">
+              <button onClick={() => setSchemeOpen(false)} aria-label={t.common.close}>
                 <X size={18} />
               </button>
             </div>
@@ -535,10 +558,12 @@ function StepperCard({
   icon: Icon,
   className,
   card,
+  t,
 }: {
   icon: typeof Lightbulb;
   className: string;
   card: LessonCard;
+  t: T;
 }) {
   const [stepIndex, setStepIndex] = useState(0);
   const [ctxOpen, setCtxOpen] = useState(false);
@@ -578,14 +603,14 @@ function StepperCard({
             }}
             className="flex w-fit items-center gap-1 rounded-full bg-background px-3 py-1 text-xs text-muted-foreground"
           >
-            <Info size={13} /> из учебника
+            <Info size={13} /> {t.lesson.fromTextbook}
           </button>
           {ctxOpen && <p className="text-sm text-muted-foreground leading-relaxed">{step.context}</p>}
         </>
       )}
 
       {!isLastStep && (
-        <p className="text-center text-xs text-muted-foreground">тапни карточку — следующий</p>
+        <p className="text-center text-xs text-muted-foreground">{t.lesson.tapNext}</p>
       )}
     </div>
   );

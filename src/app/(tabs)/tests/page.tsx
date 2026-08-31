@@ -6,6 +6,7 @@ import { fetchJson } from "@/lib/api";
 import { ScreenHeader } from "@/components/layout/ScreenHeader";
 import { TopicIcon } from "@/components/TopicIcon";
 import { ChevronRight } from "lucide-react";
+import { useT } from "@/lib/i18n";
 
 interface Topic {
   id: string;
@@ -17,19 +18,20 @@ interface Topic {
 }
 
 export default function TestsPage() {
+  const t = useT();
   const { data } = useQuery({
     queryKey: ["topics"],
     queryFn: () => fetchJson<{ topics: Topic[] }>("/api/topics"),
   });
 
-  const available = (data?.topics ?? []).filter((t) => t.hasLessons && t.firstLessonId);
+  const available = (data?.topics ?? []).filter((topic) => topic.hasLessons && topic.firstLessonId);
 
   return (
     <div className="flex flex-col gap-4 px-4">
-      <ScreenHeader title="Тесты" />
+      <ScreenHeader title={t.nav.tests} />
 
       {available.length === 0 && (
-        <p className="text-sm text-muted-foreground">Тесты появятся по мере изучения тем.</p>
+        <p className="text-sm text-muted-foreground">{t.tests.empty}</p>
       )}
 
       <div className="flex flex-col gap-3">

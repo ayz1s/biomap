@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Check } from "lucide-react";
 import { fetchJson } from "@/lib/api";
 import { Progress } from "@/components/ui/progress";
+import { useT } from "@/lib/i18n";
 
 interface Option {
   id: string;
@@ -34,6 +35,7 @@ type Mode = "question" | "hint" | "explanation" | "correct";
 export default function TestPage({ params }: { params: Promise<{ testId: string }> }) {
   const { testId: lessonId } = use(params);
   const router = useRouter();
+  const t = useT();
   const { data } = useQuery({
     queryKey: ["lesson", lessonId],
     queryFn: () => fetchJson<LessonData>(`/api/lessons/${lessonId}`),
@@ -54,15 +56,13 @@ export default function TestPage({ params }: { params: Promise<{ testId: string 
   if (finished) {
     return (
       <div className="flex min-h-full flex-col items-center justify-center gap-4 px-4 text-center">
-        <p className="text-xl font-semibold">Тест завершён!</p>
-        <p className="text-muted-foreground">
-          Правильно: {correctCount} из {questions.length}
-        </p>
+        <p className="text-xl font-semibold">{t.test.finished}</p>
+        <p className="text-muted-foreground">{t.test.correctOf(correctCount, questions.length)}</p>
         <Link
           href="/"
           className="flex h-11 items-center justify-center rounded-xl bg-primary px-6 font-medium text-primary-foreground"
         >
-          На главную
+          {t.test.toHome}
         </Link>
       </div>
     );
@@ -121,16 +121,14 @@ export default function TestPage({ params }: { params: Promise<{ testId: string 
   return (
     <div className="flex min-h-full flex-col gap-4 px-4 pt-4">
       <div className="flex items-center gap-3">
-        <button onClick={() => router.back()} aria-label="Назад" className="flex h-9 w-9 items-center justify-center">
+        <button onClick={() => router.back()} aria-label={t.common.back} className="flex h-9 w-9 items-center justify-center">
           <ArrowLeft size={22} />
         </button>
         <h1 className="flex-1 truncate text-lg font-semibold">{data.lesson.title}</h1>
       </div>
 
       <div>
-        <p className="mb-2 text-sm text-muted-foreground">
-          Вопрос {qIndex + 1} из {questions.length}
-        </p>
+        <p className="mb-2 text-sm text-muted-foreground">{t.test.questionOf(qIndex + 1, questions.length)}</p>
         <Progress value={((qIndex + 1) / questions.length) * 100} className="h-1.5" />
       </div>
 
@@ -138,7 +136,7 @@ export default function TestPage({ params }: { params: Promise<{ testId: string 
         <>
           <p className="text-lg font-medium">{question.text}</p>
           {question.type === "MULTIPLE_CHOICE" && (
-            <p className="text-sm text-muted-foreground">Выберите все подходящие варианты</p>
+            <p className="text-sm text-muted-foreground">{t.test.selectAll}</p>
           )}
           <div className="flex flex-col gap-2">
             {question.options.map((opt, i) => (
@@ -158,14 +156,14 @@ export default function TestPage({ params }: { params: Promise<{ testId: string 
           </div>
           <div className="mt-auto flex items-center justify-between pb-4">
             <button onClick={goToNextQuestion} className="text-muted-foreground">
-              Пропустить
+              {t.test.skip}
             </button>
             <button
               onClick={submit}
               disabled={selected.length === 0}
               className="flex h-11 items-center rounded-xl bg-primary px-6 font-medium text-primary-foreground disabled:opacity-40"
             >
-              Ответить
+              {t.test.answer}
             </button>
           </div>
         </>
@@ -174,11 +172,11 @@ export default function TestPage({ params }: { params: Promise<{ testId: string 
       {mode === "correct" && (
         <div className="flex flex-1 flex-col gap-4">
           <div className="flex items-center gap-2 rounded-xl bg-secondary p-4 text-secondary-foreground">
-            <Check size={20} /> Верно!
+            <Check size={20} /> {t.test.correct}
           </div>
           {question.note && (
             <div>
-              <p className="mb-1 font-medium">Объяснение</p>
+              <p className="mb-1 font-medium">{t.test.explanation}</p>
               <p className="text-muted-foreground">{question.note}</p>
             </div>
           )}
@@ -186,33 +184,31 @@ export default function TestPage({ params }: { params: Promise<{ testId: string 
             onClick={goToNextQuestion}
             className="mt-auto mb-4 flex h-11 items-center justify-center rounded-xl bg-primary font-medium text-primary-foreground"
           >
-            Далее
+            {t.lesson.next}
           </button>
         </div>
       )}
 
       {mode === "hint" && (
         <div className="flex flex-1 flex-col gap-4">
-          <p className="text-sm text-muted-foreground">
-            Подсказка {attempts} из {question.hints.length}
-          </p>
+          <p className="text-sm text-muted-foreground">{t.test.hintOf(attempts, question.hints.length)}</p>
           <p className="text-lg">{question.hints[attempts - 1]?.text}</p>
           <button
             onClick={() => setMode("question")}
             className="mt-auto mb-4 flex h-11 items-center justify-center rounded-xl bg-primary font-medium text-primary-foreground"
           >
-            Пробовать снова
+            {t.test.tryAgain}
           </button>
         </div>
       )}
 
       {mode === "explanation" && (
         <div className="flex flex-1 flex-col gap-4">
-          <p className="font-medium">Правильный ответ:</p>
+          <p className="font-medium">{t.test.correctAnswer}</p>
           <p className="text-lg">{correctOptionsText.join(", ")}</p>
           {question.note && (
             <div>
-              <p className="mb-1 font-medium">Объяснение</p>
+              <p className="mb-1 font-medium">{t.test.explanation}</p>
               <p className="text-muted-foreground">{question.note}</p>
             </div>
           )}
@@ -220,7 +216,7 @@ export default function TestPage({ params }: { params: Promise<{ testId: string 
             onClick={goToNextQuestion}
             className="mt-auto mb-4 flex h-11 items-center justify-center rounded-xl bg-primary font-medium text-primary-foreground"
           >
-            Далее
+            {t.lesson.next}
           </button>
         </div>
       )}

@@ -7,6 +7,7 @@ import { Search } from "lucide-react";
 import { fetchJson } from "@/lib/api";
 import { ScreenHeader } from "@/components/layout/ScreenHeader";
 import { Progress } from "@/components/ui/progress";
+import { useT } from "@/lib/i18n";
 
 interface CategoryTopic {
   id: string;
@@ -29,6 +30,7 @@ export default function CategoryDetailPage({
   params: Promise<{ categoryId: string }>;
 }) {
   const { categoryId } = use(params);
+  const t = useT();
   const { data } = useQuery({
     queryKey: ["category", categoryId],
     queryFn: () => fetchJson<{ category: CategoryDetail }>(`/api/categories/${categoryId}`),
@@ -54,7 +56,7 @@ export default function CategoryDetailPage({
         <input
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          placeholder="Поиск темы в разделе"
+          placeholder={t.topics.categorySearchPlaceholder}
           className="w-full bg-transparent text-sm outline-none"
         />
       </div>
@@ -62,7 +64,7 @@ export default function CategoryDetailPage({
       <div className="flex flex-col gap-5">
         {filteredGrades.map((g) => (
           <div key={g.gradeNumber} className="flex flex-col gap-2">
-            <p className="text-sm font-medium text-muted-foreground">{g.gradeNumber} класс</p>
+            <p className="text-sm font-medium text-muted-foreground">{t.classes.detailTitle(g.gradeNumber)}</p>
             <div className="flex flex-col gap-2">
               {g.topics.map((topic) => {
                 const progress =
@@ -79,7 +81,7 @@ export default function CategoryDetailPage({
                       {topic.hasLessons ? (
                         <Progress value={progress} className="h-1.5" />
                       ) : (
-                        <p className="text-xs text-muted-foreground">Скоро</p>
+                        <p className="text-xs text-muted-foreground">{t.common.soon}</p>
                       )}
                     </div>
                   </div>

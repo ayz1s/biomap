@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import { useT } from "@/lib/i18n";
 
 export function ScreenHeader({
   title,
@@ -11,12 +12,13 @@ export function ScreenHeader({
   rightSlot?: React.ReactNode;
 }) {
   const router = useRouter();
+  const t = useT();
 
   return (
     <header className="flex items-center gap-3 px-4 py-4">
       <button
         onClick={() => router.back()}
-        aria-label="Назад"
+        aria-label={t.common.back}
         className="flex h-9 w-9 items-center justify-center rounded-full text-foreground"
       >
         <ArrowLeft size={22} />
