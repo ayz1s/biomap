@@ -6,6 +6,7 @@ import { ScreenHeader } from "@/components/layout/ScreenHeader";
 import { Card } from "@/components/ui/card";
 import { User } from "lucide-react";
 import { useT } from "@/lib/i18n";
+import { useAppStore } from "@/store/useAppStore";
 
 interface ProfileData {
   firstName: string;
@@ -18,6 +19,7 @@ interface ProfileData {
 export default function ProfilePage() {
   const queryClient = useQueryClient();
   const t = useT();
+  const setLanguage = useAppStore((s) => s.setLanguage);
   const { data } = useQuery({
     queryKey: ["profile"],
     queryFn: () => fetchJson<{ user: ProfileData | null }>("/api/profile"),
@@ -27,6 +29,10 @@ export default function ProfilePage() {
 
   async function changeLanguage(language: "RU" | "UZ") {
     if (!user || user.language === language) return;
+    // Обновляем стор сразу — весь UI-хром (useT()) читает язык из него, а не
+    // из этого react-query кэша, и должен переключиться мгновенно, не дожидаясь
+    // ответа сервера или инвалидации остальных запросов.
+    setLanguage(language);
     await fetchJson("/api/profile/language", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

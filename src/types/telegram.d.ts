@@ -10,6 +10,13 @@ export interface TelegramWebApp {
   ready: () => void;
   expand: () => void;
   colorScheme: "light" | "dark";
+  disableVerticalSwipes?: () => void;
+  BackButton?: {
+    show: () => void;
+    hide: () => void;
+    onClick: (cb: () => void) => void;
+    offClick: (cb: () => void) => void;
+  };
 }
 
 declare global {

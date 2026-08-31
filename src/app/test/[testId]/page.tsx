@@ -120,7 +120,7 @@ export default function TestPage({ params }: { params: Promise<{ testId: string 
 
   return (
     <div className="flex min-h-full flex-col gap-4 px-4 pt-4">
-      <div className="flex items-center gap-3">
+      <div className="sticky top-0 z-20 -mx-4 flex items-center gap-3 bg-background/95 px-4 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <button onClick={() => router.back()} aria-label={t.common.back} className="flex h-9 w-9 items-center justify-center">
           <ArrowLeft size={22} />
         </button>

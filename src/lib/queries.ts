@@ -72,6 +72,9 @@ export async function getCategoryDetail(categoryId: string, userId: string | nul
       hasLessons: topic.lessons.length > 0,
       lessonsCompleted: completed,
       lessonsTotal: topic.lessons.length,
+      // Тема с ровно одним уроком — открываем урок сразу, без промежуточного
+      // экрана темы с единственным пунктом в списке (см. фидбек пользователя).
+      soloLessonId: topic.lessons.length === 1 ? topic.lessons[0].id : null,
     };
   }
 
@@ -118,6 +121,7 @@ export async function getGradeCurriculum(gradeNumber: number, userId: string | n
       hasLessons: topic.lessons.length > 0,
       lessonsCompleted: completed,
       lessonsTotal: topic.lessons.length,
+      soloLessonId: topic.lessons.length === 1 ? topic.lessons[0].id : null,
     };
   }
 
@@ -176,11 +180,16 @@ export async function searchTopics(query: string, language: Language) {
   const topics = await prisma.topic.findMany({
     where: { title: { contains: q, mode: "insensitive" }, grade: { language } },
     orderBy: [{ gradeId: "asc" }, { order: "asc" }],
-    include: { grade: true },
+    include: { grade: true, lessons: { where: { published: true }, select: { id: true } } },
     take: 30,
   });
 
-  return topics.map((t) => ({ id: t.id, title: t.title, gradeNumber: t.grade.number }));
+  return topics.map((t) => ({
+    id: t.id,
+    title: t.title,
+    gradeNumber: t.grade.number,
+    soloLessonId: t.lessons.length === 1 ? t.lessons[0].id : null,
+  }));
 }
 
 // Для каждого сквозного понятия, помеченного в этом уроке, — его вхождения

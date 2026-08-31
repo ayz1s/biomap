@@ -14,6 +14,7 @@ interface TopicSummary {
   hasLessons: boolean;
   lessonsCompleted: number;
   lessonsTotal: number;
+  soloLessonId: string | null;
 }
 
 interface GradeCurriculum {
@@ -62,7 +63,10 @@ export default function GradeCurriculumPage({
                   </div>
                 );
                 return topic.hasLessons ? (
-                  <Link key={topic.id} href={`/topics/detail/${topic.id}`}>
+                  <Link
+                    key={topic.id}
+                    href={topic.soloLessonId ? `/lesson/${topic.soloLessonId}` : `/topics/detail/${topic.id}`}
+                  >
                     {content}
                   </Link>
                 ) : (

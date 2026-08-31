@@ -121,33 +121,35 @@ export default function LessonPage({ params }: { params: Promise<{ lessonId: str
   }
 
   return (
-    <div className="flex min-h-full flex-col gap-4 px-4 pt-4">
-      <div className="flex items-center gap-3">
-        <button onClick={() => router.back()} aria-label={t.common.back} className="flex h-9 w-9 items-center justify-center">
-          <ArrowLeft size={22} />
-        </button>
-        <h1 className="flex-1 truncate text-lg font-semibold">{title}</h1>
+    <div className="flex min-h-full flex-col px-4 pt-4">
+      <div className="sticky top-0 z-20 -mx-4 flex flex-col gap-4 bg-background/95 px-4 pb-4 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+        <div className="flex items-center gap-3">
+          <button onClick={() => router.back()} aria-label={t.common.back} className="flex h-9 w-9 items-center justify-center">
+            <ArrowLeft size={22} />
+          </button>
+          <h1 className="flex-1 truncate text-lg font-semibold">{title}</h1>
+        </div>
+
+        <div className="flex gap-2">
+          {TABS.map((tab) => {
+            const Icon = tab.icon;
+            const active = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => selectTab(tab.key)}
+                className={`flex items-center gap-1 rounded-full px-3 py-1 text-sm ${
+                  active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                }`}
+              >
+                <Icon size={14} /> {tab.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      <div className="flex gap-2">
-        {TABS.map((tab) => {
-          const Icon = tab.icon;
-          const active = activeTab === tab.key;
-          return (
-            <button
-              key={tab.key}
-              onClick={() => selectTab(tab.key)}
-              className={`flex items-center gap-1 rounded-full px-3 py-1 text-sm ${
-                active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-              }`}
-            >
-              <Icon size={14} /> {tab.label}
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="flex flex-1 flex-col">
+      <div className="flex flex-1 flex-col pt-4">
         {activeTab === "text" && (
           <TextTab chunks={data.lesson.textChunks} concepts={data.lesson.concepts} gradeNumber={data.lesson.gradeNumber} t={t} />
         )}

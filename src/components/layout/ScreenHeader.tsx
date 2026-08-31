@@ -15,7 +15,7 @@ export function ScreenHeader({
   const t = useT();
 
   return (
-    <header className="flex items-center gap-3 px-4 py-4">
+    <header className="sticky top-0 z-20 flex items-center gap-3 bg-background/95 px-4 py-4 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <button
         onClick={() => router.back()}
         aria-label={t.common.back}

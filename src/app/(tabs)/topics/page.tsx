@@ -24,6 +24,7 @@ interface SearchResult {
   id: string;
   title: string;
   gradeNumber: number;
+  soloLessonId: string | null;
 }
 
 export default function TopicsPage() {
@@ -65,7 +66,7 @@ export default function TopicsPage() {
             searchData?.results.map((r) => (
               <Link
                 key={r.id}
-                href={`/topics/detail/${r.id}`}
+                href={r.soloLessonId ? `/lesson/${r.soloLessonId}` : `/topics/detail/${r.id}`}
                 className="flex items-center justify-between rounded-xl bg-card p-3 ring-1 ring-foreground/15"
               >
                 <span className="font-medium">{r.title}</span>

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { initTelegramWebApp } from "@/lib/telegram";
 import { useAppStore } from "@/store/useAppStore";
+import { TelegramBackButton } from "./TelegramBackButton";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
@@ -23,5 +24,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
       .catch(() => {});
   }, [setUser]);
 
-  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TelegramBackButton />
+      {children}
+    </QueryClientProvider>
+  );
 }
