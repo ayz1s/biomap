@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { getCurrentUserId } from "@/lib/session";
+import { cookies } from "next/headers";
+import { getCurrentUserId, LANGUAGE_COOKIE } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(req: Request) {
@@ -12,5 +13,9 @@ export async function POST(req: Request) {
   }
 
   const user = await prisma.user.update({ where: { id: userId }, data: { language } });
+  // Кука кэширует язык для getCurrentUserLanguage — без этого следующий
+  // запрос ещё секунду-другую читал бы старое значение из куки.
+  const store = await cookies();
+  store.set(LANGUAGE_COOKIE, user.language, { maxAge: 60 * 60 * 24 * 365, path: "/" });
   return NextResponse.json({ language: user.language });
 }

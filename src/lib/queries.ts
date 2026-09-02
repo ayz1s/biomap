@@ -45,21 +45,23 @@ export async function getCategoriesWithProgress(userId: string | null, language:
 
 // Раздел вкладки "По темам" — темы категории из всех классов, сгруппированные по классу.
 export async function getCategoryDetail(categoryId: string, userId: string | null) {
-  const category = await prisma.topicCategory.findUnique({
-    where: { id: categoryId },
-    include: {
-      topics: {
-        orderBy: [{ gradeId: "asc" }, { order: "asc" }],
-        include: {
-          grade: true,
-          lessons: { where: { published: true }, select: { id: true } },
+  const [category, completedLessonIds] = await Promise.all([
+    prisma.topicCategory.findUnique({
+      where: { id: categoryId },
+      include: {
+        topics: {
+          orderBy: [{ gradeId: "asc" }, { order: "asc" }],
+          include: {
+            grade: true,
+            lessons: { where: { published: true }, select: { id: true } },
+          },
         },
       },
-    },
-  });
+    }),
+    getCompletedLessonIds(userId),
+  ]);
   if (!category) return null;
 
-  const completedLessonIds = await getCompletedLessonIds(userId);
   const categoryTopics = category.topics;
 
   const byGrade = new Map<number, { gradeNumber: number; topics: ReturnType<typeof toTopicSummary>[] }>();
@@ -95,18 +97,20 @@ export async function getCategoryDetail(categoryId: string, userId: string | nul
 
 // Вкладка "По классам" — главы и темы одного класса, в порядке учебника.
 export async function getGradeCurriculum(gradeNumber: number, userId: string | null, language: Language) {
-  const grade = await prisma.grade.findUnique({
-    where: { number_language: { number: gradeNumber, language } },
-    include: {
-      topics: {
-        orderBy: { order: "asc" },
-        include: { lessons: { where: { published: true }, select: { id: true } } },
+  const [grade, completedLessonIds] = await Promise.all([
+    prisma.grade.findUnique({
+      where: { number_language: { number: gradeNumber, language } },
+      include: {
+        topics: {
+          orderBy: { order: "asc" },
+          include: { lessons: { where: { published: true }, select: { id: true } } },
+        },
       },
-    },
-  });
+    }),
+    getCompletedLessonIds(userId),
+  ]);
   if (!grade) return null;
 
-  const completedLessonIds = await getCompletedLessonIds(userId);
   const gradeTopics = grade.topics;
 
   const byChapter = new Map<
@@ -141,18 +145,19 @@ export async function getGradeCurriculum(gradeNumber: number, userId: string | n
 // Экран одной темы — контекст (класс/глава/раздел), список уроков (не только
 // первый — темы вроде "§10" могут иметь несколько уроков) и связи с другими темами.
 export async function getTopicDetail(topicId: string, userId: string | null) {
-  const topic = await prisma.topic.findUnique({
-    where: { id: topicId },
-    include: {
-      grade: true,
-      category: true,
-      lessons: { where: { published: true }, orderBy: { order: "asc" } },
-      connectionsFrom: { include: { toTopic: true } },
-    },
-  });
+  const [topic, completedLessonIds] = await Promise.all([
+    prisma.topic.findUnique({
+      where: { id: topicId },
+      include: {
+        grade: true,
+        category: true,
+        lessons: { where: { published: true }, orderBy: { order: "asc" } },
+        connectionsFrom: { include: { toTopic: true } },
+      },
+    }),
+    getCompletedLessonIds(userId),
+  ]);
   if (!topic) return null;
-
-  const completedLessonIds = await getCompletedLessonIds(userId);
 
   return {
     id: topic.id,
@@ -240,32 +245,35 @@ async function getConceptsForLesson(
 }
 
 export async function getLessonWithProgress(lessonId: string, userId: string | null, language: Language) {
-  const lesson = await prisma.lesson.findUnique({
-    where: { id: lessonId },
-    include: {
-      cards: {
-        include: { steps: { orderBy: { order: "asc" } } },
-        orderBy: { order: "asc" },
-      },
-      questions: {
-        orderBy: { order: "asc" },
-        include: {
-          options: { orderBy: { order: "asc" } },
-          hints: { orderBy: { order: "asc" } },
+  // progress не зависит от содержимого lesson (нужны только userId/lessonId)
+  // — запрашиваем параллельно, а не после того, как lesson уже пришёл.
+  const [lesson, progress] = await Promise.all([
+    prisma.lesson.findUnique({
+      where: { id: lessonId },
+      include: {
+        cards: {
+          include: { steps: { orderBy: { order: "asc" } } },
+          orderBy: { order: "asc" },
         },
+        questions: {
+          orderBy: { order: "asc" },
+          include: {
+            options: { orderBy: { order: "asc" } },
+            hints: { orderBy: { order: "asc" } },
+          },
+        },
+        textChunks: { orderBy: { order: "asc" } },
+        topic: { include: { grade: true } },
+        conceptOccurrences: { include: { concept: true } },
       },
-      textChunks: { orderBy: { order: "asc" } },
-      topic: { include: { grade: true } },
-      conceptOccurrences: { include: { concept: true } },
-    },
-  });
+    }),
+    userId
+      ? prisma.userLessonProgress.findUnique({
+          where: { userId_lessonId: { userId, lessonId } },
+        })
+      : null,
+  ]);
   if (!lesson || !lesson.published) return null;
-
-  const progress = userId
-    ? await prisma.userLessonProgress.findUnique({
-        where: { userId_lessonId: { userId, lessonId } },
-      })
-    : null;
 
   const concepts = await getConceptsForLesson(lessonId, lesson.conceptOccurrences, language);
 
@@ -357,13 +365,14 @@ export async function getMistakesGroupedByTopic(userId: string) {
 }
 
 export async function getRepetitionSchedule(userId: string) {
-  const items = await prisma.repetitionItem.findMany({
-    where: { userId },
-    orderBy: { dueAt: "asc" },
-    include: { lesson: { include: { topic: true } } },
-  });
-
-  const streak = await prisma.userStreak.findUnique({ where: { userId } });
+  const [items, streak] = await Promise.all([
+    prisma.repetitionItem.findMany({
+      where: { userId },
+      orderBy: { dueAt: "asc" },
+      include: { lesson: { include: { topic: true } } },
+    }),
+    prisma.userStreak.findUnique({ where: { userId } }),
+  ]);
 
   return {
     items: items.map((item) => ({
@@ -377,17 +386,39 @@ export async function getRepetitionSchedule(userId: string) {
 }
 
 export async function getHomeSummary(userId: string | null, language: Language) {
-  const inProgress = userId
-    ? await prisma.userLessonProgress.findFirst({
-        where: {
-          userId,
-          completed: false,
-          lesson: { published: true, topic: { grade: { language } } },
-        },
-        orderBy: { updatedAt: "desc" },
-        include: { lesson: { include: { cards: true, topic: { include: { grade: true, category: true } } } } },
-      })
-    : null;
+  const today = new Date();
+  today.setHours(23, 59, 59, 999);
+
+  // Ни один из этих запросов не зависит от результата другого — раньше шли
+  // последовательными await один за другим, и на удалённой БД (Сингапур)
+  // каждый round-trip добавлял ~200-300мс, так что вся Главная грузилась
+  // секундами. Promise.all сводит это к одному раунду вместо пяти.
+  const [inProgress, mistakesCount, dueTodayCount, totalLessons, completedLessons] =
+    await Promise.all([
+      userId
+        ? prisma.userLessonProgress.findFirst({
+            where: {
+              userId,
+              completed: false,
+              lesson: { published: true, topic: { grade: { language } } },
+            },
+            orderBy: { updatedAt: "desc" },
+            include: { lesson: { include: { cards: true, topic: { include: { grade: true, category: true } } } } },
+          })
+        : null,
+      userId ? prisma.userMistake.count({ where: { userId, timesWrong: { gt: 0 } } }) : 0,
+      userId ? prisma.repetitionItem.count({ where: { userId, dueAt: { lte: today } } }) : 0,
+      prisma.lesson.count({ where: { published: true, topic: { grade: { language } } } }),
+      userId
+        ? prisma.userLessonProgress.count({
+            where: {
+              userId,
+              completed: true,
+              lesson: { published: true, topic: { grade: { language } } },
+            },
+          })
+        : 0,
+    ]);
 
   const fallbackLesson = inProgress
     ? null
@@ -430,28 +461,6 @@ export async function getHomeSummary(userId: string | null, language: Language) 
         }
       : null;
 
-  const mistakesCount = userId
-    ? await prisma.userMistake.count({ where: { userId, timesWrong: { gt: 0 } } })
-    : 0;
-
-  const today = new Date();
-  today.setHours(23, 59, 59, 999);
-  const dueTodayCount = userId
-    ? await prisma.repetitionItem.count({ where: { userId, dueAt: { lte: today } } })
-    : 0;
-
-  const totalLessons = await prisma.lesson.count({
-    where: { published: true, topic: { grade: { language } } },
-  });
-  const completedLessons = userId
-    ? await prisma.userLessonProgress.count({
-        where: {
-          userId,
-          completed: true,
-          lesson: { published: true, topic: { grade: { language } } },
-        },
-      })
-    : 0;
   const overallProgress =
     totalLessons === 0 ? 0 : Math.round((completedLessons / totalLessons) * 100);
 
