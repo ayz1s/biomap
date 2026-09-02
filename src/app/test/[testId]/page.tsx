@@ -60,7 +60,7 @@ export default function TestPage({ params }: { params: Promise<{ testId: string 
         <p className="text-muted-foreground">{t.test.correctOf(correctCount, questions.length)}</p>
         <Link
           href="/"
-          className="flex h-11 items-center justify-center rounded-xl bg-primary px-6 font-medium text-primary-foreground"
+          className="flex h-11 items-center justify-center rounded-lg bg-primary px-6 font-extrabold text-primary-foreground"
         >
           {t.test.toHome}
         </Link>
@@ -120,11 +120,15 @@ export default function TestPage({ params }: { params: Promise<{ testId: string 
 
   return (
     <div className="flex min-h-full flex-col gap-4 px-4 pt-4">
-      <div className="sticky top-0 z-20 -mx-4 flex items-center gap-3 bg-background/95 px-4 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-        <button onClick={() => router.back()} aria-label={t.common.back} className="flex h-9 w-9 items-center justify-center">
-          <ArrowLeft size={22} />
+      <div className="sticky top-0 z-20 -mx-4 flex items-center gap-3 bg-background px-4 py-2">
+        <button
+          onClick={() => router.back()}
+          aria-label={t.common.back}
+          className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-xl border border-border bg-card text-foreground shadow-[0_6px_14px_-6px_rgba(20,20,10,0.16)]"
+        >
+          <ArrowLeft size={19} />
         </button>
-        <h1 className="flex-1 truncate text-lg font-semibold">{data.lesson.title}</h1>
+        <h1 className="flex-1 truncate font-heading text-[16.5px] font-semibold tracking-tight text-foreground">{data.lesson.title}</h1>
       </div>
 
       <div>
@@ -139,20 +143,27 @@ export default function TestPage({ params }: { params: Promise<{ testId: string 
             <p className="text-sm text-muted-foreground">{t.test.selectAll}</p>
           )}
           <div className="flex flex-col gap-2">
-            {question.options.map((opt, i) => (
-              <button
-                key={opt.id}
-                onClick={() => toggleOption(opt.id)}
-                className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-left ${
-                  selected.includes(opt.id)
-                    ? "border-primary bg-secondary"
-                    : "border-border bg-card"
-                }`}
-              >
-                <span className="font-medium">{String.fromCharCode(65 + i)}</span>
-                <span>{opt.text}</span>
-              </button>
-            ))}
+            {question.options.map((opt, i) => {
+              const isSelected = selected.includes(opt.id);
+              return (
+                <button
+                  key={opt.id}
+                  onClick={() => toggleOption(opt.id)}
+                  className={`flex items-center gap-3 rounded-xl border-[1.5px] px-4 py-3 text-left ${
+                    isSelected ? "border-primary bg-primary-soft" : "border-border bg-card"
+                  }`}
+                >
+                  <span
+                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-xs font-bold ${
+                      isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {String.fromCharCode(65 + i)}
+                  </span>
+                  <span>{opt.text}</span>
+                </button>
+              );
+            })}
           </div>
           <div className="mt-auto flex items-center justify-between pb-4">
             <button onClick={goToNextQuestion} className="text-muted-foreground">
@@ -161,7 +172,7 @@ export default function TestPage({ params }: { params: Promise<{ testId: string 
             <button
               onClick={submit}
               disabled={selected.length === 0}
-              className="flex h-11 items-center rounded-xl bg-primary px-6 font-medium text-primary-foreground disabled:opacity-40"
+              className="flex h-11 items-center rounded-lg bg-primary px-6 font-extrabold text-primary-foreground disabled:opacity-40"
             >
               {t.test.answer}
             </button>
@@ -171,7 +182,7 @@ export default function TestPage({ params }: { params: Promise<{ testId: string 
 
       {mode === "correct" && (
         <div className="flex flex-1 flex-col gap-4">
-          <div className="flex items-center gap-2 rounded-xl bg-secondary p-4 text-secondary-foreground">
+          <div className="flex items-center gap-2 rounded-xl bg-primary-soft p-4 text-primary-dark">
             <Check size={20} /> {t.test.correct}
           </div>
           {question.note && (
@@ -182,7 +193,7 @@ export default function TestPage({ params }: { params: Promise<{ testId: string 
           )}
           <button
             onClick={goToNextQuestion}
-            className="mt-auto mb-4 flex h-11 items-center justify-center rounded-xl bg-primary font-medium text-primary-foreground"
+            className="mt-auto mb-4 flex h-11 items-center justify-center rounded-lg bg-primary font-extrabold text-primary-foreground"
           >
             {t.lesson.next}
           </button>
@@ -195,7 +206,7 @@ export default function TestPage({ params }: { params: Promise<{ testId: string 
           <p className="text-lg">{question.hints[attempts - 1]?.text}</p>
           <button
             onClick={() => setMode("question")}
-            className="mt-auto mb-4 flex h-11 items-center justify-center rounded-xl bg-primary font-medium text-primary-foreground"
+            className="mt-auto mb-4 flex h-11 items-center justify-center rounded-lg bg-primary font-extrabold text-primary-foreground"
           >
             {t.test.tryAgain}
           </button>
@@ -214,7 +225,7 @@ export default function TestPage({ params }: { params: Promise<{ testId: string 
           )}
           <button
             onClick={goToNextQuestion}
-            className="mt-auto mb-4 flex h-11 items-center justify-center rounded-xl bg-primary font-medium text-primary-foreground"
+            className="mt-auto mb-4 flex h-11 items-center justify-center rounded-lg bg-primary font-extrabold text-primary-foreground"
           >
             {t.lesson.next}
           </button>

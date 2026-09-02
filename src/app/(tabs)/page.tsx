@@ -11,6 +11,7 @@ import {
   LayoutGrid,
   ClipboardCheck,
   Book,
+  Leaf,
 } from "lucide-react";
 import { fetchJson } from "@/lib/api";
 import { useAppStore } from "@/store/useAppStore";
@@ -35,8 +36,8 @@ export default function HomePage() {
   return (
     <div className="flex flex-col gap-5 px-4 pt-4">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-lg font-semibold">
-          <span className="text-primary">🌱</span> BioMap
+        <div className="flex items-center gap-1.5 font-heading text-lg font-bold tracking-tight">
+          <Leaf size={20} className="text-primary" strokeWidth={2.4} /> BioMap
         </div>
         <button aria-label={t.home.notifications} className="text-foreground">
           <Bell size={22} />
@@ -45,7 +46,7 @@ export default function HomePage() {
 
       <div>
         <p className="text-muted-foreground">{t.home.greeting(user?.firstName)}</p>
-        <h2 className="text-2xl font-semibold">{t.home.question}</h2>
+        <h2 className="font-heading text-2xl font-bold tracking-tight">{t.home.question}</h2>
       </div>
 
       <Card className="gap-3 p-4">
@@ -58,7 +59,7 @@ export default function HomePage() {
             </p>
             <Link
               href={`/lesson/${data.continueLesson.lessonId}`}
-              className="mt-1 flex h-11 items-center justify-center rounded-xl bg-primary font-medium text-primary-foreground"
+              className="mt-1 flex h-11 items-center justify-center rounded-lg bg-primary font-extrabold text-primary-foreground"
             >
               {t.home.continueButton}
             </Link>

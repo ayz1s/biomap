@@ -52,7 +52,7 @@ export default function CategoryDetailPage({
     <div className="flex flex-col gap-4 px-4">
       <ScreenHeader title={category?.name ?? ""} />
 
-      <div className="flex items-center gap-2 rounded-xl bg-card px-3 py-2 ring-1 ring-foreground/15">
+      <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">
         <Search size={18} className="text-muted-foreground" />
         <input
           value={filter}
@@ -73,7 +73,7 @@ export default function CategoryDetailPage({
                     ? 0
                     : Math.round((topic.lessonsCompleted / topic.lessonsTotal) * 100);
                 const content = (
-                  <div className="flex items-center justify-between rounded-xl bg-card p-3 ring-1 ring-foreground/15">
+                  <div className="flex items-center justify-between rounded-xl border border-border bg-card p-3">
                     <div className="flex-1">
                       <p className={topic.hasLessons ? "font-medium" : "font-medium text-muted-foreground"}>
                         {topic.title}

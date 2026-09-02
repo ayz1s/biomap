@@ -52,12 +52,12 @@ export default function TopicDetailPage({
                 <Link
                   key={lesson.id}
                   href={`/lesson/${lesson.id}`}
-                  className="flex items-center gap-3 rounded-xl bg-card p-3 ring-1 ring-foreground/15"
+                  className="flex items-center gap-3 rounded-xl border border-border bg-card p-3"
                 >
                   {lesson.completed ? (
-                    <CheckCircle2 size={20} className="shrink-0 text-primary" />
+                    <CheckCircle2 size={20} className="shrink-0 text-primary-dark" />
                   ) : (
-                    <Circle size={20} className="shrink-0 text-muted-foreground" />
+                    <Circle size={20} className="shrink-0 text-locked" />
                   )}
                   <span className="font-medium">{lesson.title}</span>
                 </Link>

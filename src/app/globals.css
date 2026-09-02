@@ -5,17 +5,22 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-manrope), var(--font-geist-sans);
+  --font-sans: var(--font-golos);
+  --font-heading: var(--font-unbounded), var(--font-golos);
+  --font-serif: var(--font-pt-serif);
   --color-info: var(--info);
   --color-info-foreground: var(--info-foreground);
+  --color-info-soft: var(--info-soft);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-destructive-soft: var(--destructive-soft);
   --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
   --color-success: var(--success);
+  --color-locked: var(--locked);
+  --color-locked-soft: var(--locked-soft);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -24,6 +29,8 @@
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
+  --color-primary-dark: var(--primary-dark);
+  --color-primary-soft: var(--primary-soft);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
@@ -37,33 +44,55 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* BioMap: гербарий, не аптека — глубокий лист вместо кнопочного зелёного,
-   бумажный, а не белый фон, и синий как отдельная роль для сквозных понятий
-   (см. прототип редизайна, согласован с пользователем). Без тёмной темы. */
+/* BioMap: «Карта» — карта знаний, а не аптека и не лесная тропа. Холодная
+   почти-белая бумага, живой хлорофилловый зелёный для прогресса/действий,
+   отдельный фиолетовый — только для сквозной связи понятий между классами
+   (никогда не смешивать со статусом прохождения). Никакого сплошного тёмного
+   хрома сверху/снизу — шапка и нижняя навигация плавают отдельными
+   элементами над контентом (см. ScreenHeader/BottomNav). Без тёмной темы. */
 :root {
-  --background: #f4f6ef;
-  --foreground: #14261c;
+  --background: #fafaf9;
+  --foreground: #1b1d1a;
   --card: #ffffff;
-  --card-foreground: #14261c;
+  --card-foreground: #1b1d1a;
   --popover: #ffffff;
-  --popover-foreground: #14261c;
-  --primary: #1b7a4b;
+  --popover-foreground: #1b1d1a;
+
+  --primary: #1fa35c;
   --primary-foreground: #ffffff;
-  --secondary: #dcefe0;
-  --secondary-foreground: #135c39;
-  --muted: #eaeee3;
-  --muted-foreground: #57685a;
-  --accent: #f5e3cd;
-  --accent-foreground: #7a4c17;
-  --info: #2d6e8e;
+  --primary-dark: #157f46;
+  --primary-soft: #e2f5ea;
+
+  --secondary: #efefea;
+  --secondary-foreground: #1b1d1a;
+
+  --muted: #efefea;
+  --muted-foreground: #8a8c82;
+
+  --accent: #efefea;
+  --accent-foreground: #1b1d1a;
+
+  /* Маршрут: сквозное понятие встречается в N классах — единственная роль
+     фиолетового, никогда не статус прохождения. */
+  --info: #6e3fa3;
   --info-foreground: #ffffff;
-  --destructive: #dc2626;
-  --warning: #c97b2e;
-  --success: #1b7a4b;
-  --border: #dde3d8;
-  --input: #dde3d8;
-  --ring: #1b7a4b;
-  --radius: 1rem;
+  --info-soft: #efe6f7;
+
+  --destructive: #d8503a;
+  --destructive-soft: #fbe7e2;
+
+  --warning: #d89a2e;
+  --warning-soft: #fbf0da;
+
+  --success: #1fa35c;
+
+  --locked: #a2a499;
+  --locked-soft: #efefea;
+
+  --border: #e7e7e2;
+  --input: #e7e7e2;
+  --ring: #1fa35c;
+  --radius: 0.8rem;
 }
 
 @layer base {

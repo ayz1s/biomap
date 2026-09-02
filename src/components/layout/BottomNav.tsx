@@ -18,19 +18,25 @@ export function BottomNav() {
   ];
 
   return (
-    <nav className="sticky bottom-0 z-20 flex items-center justify-around border-t border-border bg-card/95 px-1 pb-[env(safe-area-inset-bottom)] backdrop-blur">
+    <nav
+      className="sticky bottom-0 z-20 mx-3.5 mb-4 flex items-center gap-1 rounded-3xl border border-border bg-card p-[7px] shadow-[0_14px_28px_-12px_rgba(20,20,10,0.22)]"
+      style={{ marginBottom: "calc(env(safe-area-inset-bottom) + 1rem)" }}
+    >
       {items.map(({ href, label, icon: Icon }) => {
         const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
         return (
           <Link
             key={href}
             href={href}
-            className={`flex flex-1 flex-col items-center gap-1 py-2 text-xs ${
-              active ? "text-primary" : "text-muted-foreground"
+            aria-label={label}
+            className={`flex h-11 items-center justify-center gap-1.5 rounded-2xl text-sm font-medium transition-colors ${
+              active
+                ? "grow-[1.7] basis-0 bg-primary-soft px-3 text-primary-dark"
+                : "grow basis-0 text-muted-foreground"
             }`}
           >
             <Icon size={22} strokeWidth={active ? 2.4 : 2} />
-            <span>{label}</span>
+            {active && <span className="truncate">{label}</span>}
           </Link>
         );
       })}

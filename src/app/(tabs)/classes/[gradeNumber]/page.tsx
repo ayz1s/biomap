@@ -49,7 +49,7 @@ export default function GradeCurriculumPage({
                     ? 0
                     : Math.round((topic.lessonsCompleted / topic.lessonsTotal) * 100);
                 const content = (
-                  <div className="flex items-center justify-between rounded-xl bg-card p-3 ring-1 ring-foreground/15">
+                  <div className="flex items-center justify-between rounded-xl border border-border bg-card p-3">
                     <div className="flex-1">
                       <p className={topic.hasLessons ? "font-medium" : "font-medium text-muted-foreground"}>
                         {topic.title}

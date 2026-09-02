@@ -122,15 +122,19 @@ export default function LessonPage({ params }: { params: Promise<{ lessonId: str
 
   return (
     <div className="flex min-h-full flex-col px-4 pt-4">
-      <div className="sticky top-0 z-20 -mx-4 flex flex-col gap-4 bg-background/95 px-4 pb-4 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+      <div className="sticky top-0 z-20 -mx-4 flex flex-col gap-3 bg-background px-4 pb-3">
         <div className="flex items-center gap-3">
-          <button onClick={() => router.back()} aria-label={t.common.back} className="flex h-9 w-9 items-center justify-center">
-            <ArrowLeft size={22} />
+          <button
+            onClick={() => router.back()}
+            aria-label={t.common.back}
+            className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-xl border border-border bg-card text-foreground shadow-[0_6px_14px_-6px_rgba(20,20,10,0.16)]"
+          >
+            <ArrowLeft size={19} />
           </button>
-          <h1 className="flex-1 truncate text-lg font-semibold">{title}</h1>
+          <h1 className="flex-1 truncate font-heading text-[16.5px] font-semibold tracking-tight text-foreground">{title}</h1>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-1 rounded-xl border border-border bg-card p-1">
           {TABS.map((tab) => {
             const Icon = tab.icon;
             const active = activeTab === tab.key;
@@ -138,8 +142,8 @@ export default function LessonPage({ params }: { params: Promise<{ lessonId: str
               <button
                 key={tab.key}
                 onClick={() => selectTab(tab.key)}
-                className={`flex items-center gap-1 rounded-full px-3 py-1 text-sm ${
-                  active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                className={`flex flex-1 items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-sm font-medium ${
+                  active ? "bg-primary text-primary-foreground" : "text-muted-foreground"
                 }`}
               >
                 <Icon size={14} /> {tab.label}
@@ -226,14 +230,14 @@ function TextTab({
   const openConcept = openSlug ? concepts.find((c) => c.slug === openSlug) ?? null : null;
 
   return (
-    <div className="lesson-text flex flex-col gap-4 pb-4" onClick={handleTextClick}>
+    <div className="lesson-text flex flex-col gap-4 pb-4 font-serif text-[16px] leading-[1.72]" onClick={handleTextClick}>
       {chunks.map((chunk, i) => {
         const annotatedHtml = annotateConceptMarks(chunk.html, concepts, gradeNumber, t);
         const hasOpenMarkHere = openSlug !== null && annotatedHtml.includes(`data-c="${openSlug}"`);
         return (
           <div key={i} className="flex flex-col gap-1">
-            {chunk.heading && <p className="font-semibold">{chunk.heading}</p>}
-            <p className="whitespace-pre-line break-words leading-relaxed" dangerouslySetInnerHTML={{ __html: annotatedHtml }} />
+            {chunk.heading && <p className="font-bold">{chunk.heading}</p>}
+            <p className="whitespace-pre-line break-words" dangerouslySetInnerHTML={{ __html: annotatedHtml }} />
             {hasOpenMarkHere && openConcept && (
               <ConceptPanel concept={openConcept} onOpenLesson={(lessonId) => router.push(`/lesson/${lessonId}`)} t={t} />
             )}
@@ -243,20 +247,20 @@ function TextTab({
       <style jsx global>{`
         .lesson-text mark[data-k="t"] {
           background: none;
-          color: var(--color-primary, #2563eb);
-          font-weight: 600;
+          color: var(--color-primary-dark, #157f46);
+          font-weight: 700;
         }
         .lesson-text mark[data-k="r"] {
-          background: rgba(217, 119, 6, 0.15);
+          background: var(--color-warning-soft, #fbf0da);
           color: inherit;
-          font-weight: 600;
+          font-weight: 700;
           border-radius: 3px;
-          padding: 0 2px;
+          padding: 0 3px;
         }
         .lesson-text mark[data-k="x"] {
           background: none;
-          color: var(--color-info, #2d6e8e);
-          font-weight: 600;
+          color: var(--color-info, #6e3fa3);
+          font-weight: 700;
         }
         .lesson-text mark[data-k="x"][data-has-link="true"] {
           cursor: pointer;
@@ -266,11 +270,12 @@ function TextTab({
           display: inline-block;
           margin-left: 4px;
           border-radius: 999px;
-          background: color-mix(in srgb, var(--color-info, #2d6e8e) 14%, transparent);
+          background: var(--color-info-soft, #efe6f7);
           padding: 1px 6px;
           font-size: 0.65rem;
           font-weight: 500;
-          color: var(--color-info, #2d6e8e);
+          font-family: var(--font-sans);
+          color: var(--color-info, #6e3fa3);
           white-space: nowrap;
           vertical-align: middle;
         }
@@ -291,7 +296,7 @@ function ConceptPanel({
   t: T;
 }) {
   return (
-    <div className="flex flex-col gap-2 rounded-xl bg-info/10 p-3">
+    <div className="flex flex-col gap-2 rounded-xl bg-info-soft p-3">
       <p className="text-xs font-medium text-info">{t.lesson.alsoAppearsIn(concept.title)}</p>
       {concept.occurrences.map((occ) => (
         <div key={occ.lessonId} className="flex flex-col gap-1.5 rounded-lg bg-background p-2.5">
@@ -329,7 +334,7 @@ function SchemesTab({ cards, t }: { cards: LessonCard[]; t: T }) {
   return (
     <div className="flex flex-col gap-6 pb-4">
       {schemes.map((scheme) => (
-        <div key={scheme.id} className="flex flex-col gap-2 rounded-2xl bg-card p-4 ring-1 ring-foreground/10">
+        <div key={scheme.id} className="flex flex-col gap-2 rounded-2xl border border-border bg-card p-4">
           {scheme.title && <p className="text-sm font-medium">{scheme.title}</p>}
           <SchemeChain card={scheme} />
         </div>
@@ -507,12 +512,12 @@ function LessonCardView({
   }
 
   const style: Record<Exclude<CardType, "ILLUSTRATION">, { icon: typeof Lightbulb; className: string }> = {
-    MAIN_IDEA: { icon: Lightbulb, className: "bg-secondary text-secondary-foreground" },
-    EXPLANATION: { icon: Lightbulb, className: "bg-card text-card-foreground ring-1 ring-foreground/15" },
+    MAIN_IDEA: { icon: Lightbulb, className: "bg-primary-soft text-primary-dark" },
+    EXPLANATION: { icon: Lightbulb, className: "border border-border bg-card text-card-foreground" },
     CONNECTION: { icon: Link2, className: "bg-secondary text-secondary-foreground" },
-    COMMON_MISTAKE: { icon: AlertTriangle, className: "bg-amber-50 text-amber-900" },
-    MINI_QUESTION: { icon: HelpCircle, className: "bg-card text-card-foreground ring-1 ring-foreground/15" },
-    KEY_TERMS: { icon: BookOpen, className: "bg-card text-card-foreground ring-1 ring-foreground/15" },
+    COMMON_MISTAKE: { icon: AlertTriangle, className: "border border-warning/40 bg-warning-soft text-foreground" },
+    MINI_QUESTION: { icon: HelpCircle, className: "border border-border bg-card text-card-foreground" },
+    KEY_TERMS: { icon: BookOpen, className: "border border-border bg-card text-card-foreground" },
     SUMMARY: { icon: ListChecks, className: "bg-secondary text-secondary-foreground" },
   };
   const { icon, className } = style[card.type];
