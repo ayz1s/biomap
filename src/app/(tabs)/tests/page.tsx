@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchJson } from "@/lib/api";
 import { ScreenHeader } from "@/components/layout/ScreenHeader";
 import { TopicIcon } from "@/components/TopicIcon";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, ClipboardList } from "lucide-react";
 import { useT } from "@/lib/i18n";
 
 interface Topic {
@@ -31,7 +31,13 @@ export default function TestsPage() {
       <ScreenHeader title={t.nav.tests} />
 
       {available.length === 0 && (
-        <p className="text-sm text-muted-foreground">{t.tests.empty}</p>
+        <div className="flex flex-col items-center gap-2 py-10 text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-locked-soft">
+            <ClipboardList size={24} className="text-locked" strokeWidth={2.2} />
+          </div>
+          <p className="font-heading font-semibold text-foreground">{t.tests.emptyTitle}</p>
+          <p className="max-w-[80%] text-sm text-muted-foreground">{t.tests.emptyHint}</p>
+        </div>
       )}
 
       <div className="flex flex-col gap-3">
@@ -39,7 +45,7 @@ export default function TestsPage() {
           <Link
             key={topic.id}
             href={`/test/${topic.firstLessonId}`}
-            className="flex items-center gap-3 rounded-xl border border-border bg-card p-3"
+            className="flex items-center gap-3 rounded-xl border border-border bg-card shadow-card p-3"
           >
             <TopicIcon icon={topic.icon} colorKey={topic.colorKey} />
             <span className="flex-1 font-medium">{topic.name}</span>

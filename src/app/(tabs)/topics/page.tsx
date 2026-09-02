@@ -48,7 +48,7 @@ export default function TopicsPage() {
       <ScreenHeader title={t.topics.title} />
       <p className="text-sm text-muted-foreground">{t.topics.subtitle}</p>
 
-      <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">
+      <div className="flex items-center gap-2 rounded-xl border border-border bg-card shadow-card px-3 py-2">
         <Search size={18} className="text-muted-foreground" />
         <input
           value={query}
@@ -67,7 +67,7 @@ export default function TopicsPage() {
               <Link
                 key={r.id}
                 href={r.soloLessonId ? `/lesson/${r.soloLessonId}` : `/topics/detail/${r.id}`}
-                className="flex items-center justify-between rounded-xl border border-border bg-card p-3"
+                className="flex items-center justify-between rounded-xl border border-border bg-card shadow-card p-3"
               >
                 <span className="font-medium">{r.title}</span>
                 <span className="text-sm text-muted-foreground">{t.classes.detailTitle(r.gradeNumber)}</span>
@@ -81,7 +81,7 @@ export default function TopicsPage() {
             <Link
               key={category.id}
               href={`/topics/${category.id}`}
-              className="flex items-center gap-3 rounded-xl border border-border bg-card p-3"
+              className="flex items-center gap-3 rounded-xl border border-border bg-card shadow-card p-3"
             >
               <TopicIcon icon={category.icon} colorKey={category.colorKey} />
               <div className="flex-1">

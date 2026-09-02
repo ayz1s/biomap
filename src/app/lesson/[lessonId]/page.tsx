@@ -16,7 +16,6 @@ import {
   Info,
   X,
   FileText,
-  LayoutGrid,
 } from "lucide-react";
 import { fetchJson } from "@/lib/api";
 import { useT } from "@/lib/i18n";
@@ -84,7 +83,7 @@ interface LessonData {
   progress: { currentCardIndex: number } | null;
 }
 
-type TabKey = "text" | "schemes" | "cards" | "questions";
+type TabKey = "text" | "schemes" | "questions";
 type T = ReturnType<typeof useT>;
 
 export default function LessonPage({ params }: { params: Promise<{ lessonId: string }> }) {
@@ -104,11 +103,17 @@ export default function LessonPage({ params }: { params: Promise<{ lessonId: str
   if (!data) return null;
 
   const { title } = data.lesson;
+  // Урок входит в сквозную тему, если хоть одно понятие встречается ещё в
+  // каком-то классе — считаем число различных классов, включая текущий.
+  const routeGradeCount = new Set(
+    data.lesson.concepts.flatMap((c) => c.occurrences.map((o) => o.gradeNumber)).concat(
+      data.lesson.concepts.some((c) => c.occurrences.length > 0) ? [data.lesson.gradeNumber] : [],
+    ),
+  ).size;
 
   const TABS: { key: TabKey; label: string; icon: typeof FileText }[] = [
     { key: "text", label: t.lesson.tabText, icon: FileText },
     { key: "schemes", label: t.lesson.tabSchemes, icon: Workflow },
-    { key: "cards", label: t.lesson.tabCards, icon: LayoutGrid },
     { key: "questions", label: t.lesson.tabQuestions, icon: HelpCircle },
   ];
 
@@ -127,11 +132,11 @@ export default function LessonPage({ params }: { params: Promise<{ lessonId: str
           <button
             onClick={() => router.back()}
             aria-label={t.common.back}
-            className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-xl border border-border bg-card text-foreground shadow-[0_6px_14px_-6px_rgba(20,20,10,0.16)]"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[11px] border border-border bg-card text-foreground shadow-card"
           >
-            <ArrowLeft size={19} />
+            <ArrowLeft size={18} />
           </button>
-          <h1 className="flex-1 truncate font-heading text-[16.5px] font-semibold tracking-tight text-foreground">{title}</h1>
+          <h1 className="flex-1 truncate font-heading text-[15.5px] font-semibold tracking-tight text-foreground">{title}</h1>
         </div>
 
         <div className="flex gap-1 rounded-xl border border-border bg-card p-1">
@@ -151,16 +156,23 @@ export default function LessonPage({ params }: { params: Promise<{ lessonId: str
             );
           })}
         </div>
+
+        {activeTab === "text" && routeGradeCount > 1 && (
+          <div className="flex w-fit items-center gap-1.5 rounded-full bg-info-soft px-3 py-1 text-xs font-medium text-info">
+            <Link2 size={13} /> {t.lesson.routeBadge(routeGradeCount)}
+          </div>
+        )}
       </div>
 
       <div className="flex flex-1 flex-col pt-4">
         {activeTab === "text" && (
-          <TextTab chunks={data.lesson.textChunks} concepts={data.lesson.concepts} gradeNumber={data.lesson.gradeNumber} t={t} />
+          <>
+            <TextTab chunks={data.lesson.textChunks} concepts={data.lesson.concepts} gradeNumber={data.lesson.gradeNumber} t={t} />
+            <p className="mb-2 font-heading text-sm font-semibold text-foreground">{t.lesson.cardsHeading}</p>
+            <CardsTab lessonId={lessonId} cards={data.lesson.cards} progress={data.progress} router={router} t={t} />
+          </>
         )}
         {activeTab === "schemes" && <SchemesTab cards={data.lesson.cards} t={t} />}
-        {activeTab === "cards" && (
-          <CardsTab lessonId={lessonId} cards={data.lesson.cards} progress={data.progress} router={router} t={t} />
-        )}
       </div>
     </div>
   );

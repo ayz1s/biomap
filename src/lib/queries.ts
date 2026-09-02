@@ -385,7 +385,7 @@ export async function getHomeSummary(userId: string | null, language: Language) 
           lesson: { published: true, topic: { grade: { language } } },
         },
         orderBy: { updatedAt: "desc" },
-        include: { lesson: { include: { cards: true } } },
+        include: { lesson: { include: { cards: true, topic: { include: { grade: true, category: true } } } } },
       })
     : null;
 
@@ -394,17 +394,29 @@ export async function getHomeSummary(userId: string | null, language: Language) 
     : await prisma.lesson.findFirst({
         where: { published: true, topic: { grade: { language } } },
         orderBy: { order: "asc" },
-        include: { cards: true },
+        include: { cards: true, topic: { include: { grade: true, category: true } } },
       });
 
   // anchorCardId != null — схема привязана к другой карточке (иконка+оверлей,
   // см. LessonCard.anchorCardId) и не занимает отдельный экран в "N из M".
+  // percent — доля пройденных карточек текущего урока, для меты на Главной
+  // ("Предмет · Класс · %"), не путать с overallProgress по всей программе.
   const continueLesson = inProgress
     ? {
         lessonId: inProgress.lesson.id,
         title: inProgress.lesson.title,
         currentCardIndex: inProgress.currentCardIndex,
         totalCards: inProgress.lesson.cards.filter((c) => !c.anchorCardId).length,
+        gradeNumber: inProgress.lesson.topic.grade.number,
+        subject: inProgress.lesson.topic.category?.name ?? null,
+        percent:
+          inProgress.lesson.cards.filter((c) => !c.anchorCardId).length === 0
+            ? 0
+            : Math.round(
+                (inProgress.currentCardIndex /
+                  inProgress.lesson.cards.filter((c) => !c.anchorCardId).length) *
+                  100,
+              ),
       }
     : fallbackLesson
       ? {
@@ -412,6 +424,9 @@ export async function getHomeSummary(userId: string | null, language: Language) 
           title: fallbackLesson.title,
           currentCardIndex: 0,
           totalCards: fallbackLesson.cards.filter((c) => !c.anchorCardId).length,
+          gradeNumber: fallbackLesson.topic.grade.number,
+          subject: fallbackLesson.topic.category?.name ?? null,
+          percent: 0,
         }
       : null;
 

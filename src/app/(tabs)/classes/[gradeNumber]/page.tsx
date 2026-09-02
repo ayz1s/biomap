@@ -3,10 +3,43 @@
 import { use } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
+import { Check } from "lucide-react";
 import { fetchJson } from "@/lib/api";
 import { ScreenHeader } from "@/components/layout/ScreenHeader";
 import { Progress } from "@/components/ui/progress";
 import { useT } from "@/lib/i18n";
+
+// Статус изучения темы — цветная полоса слева карточки + значок-кружок,
+// отдельно от факта принадлежности к маршруту (см. дизайн-спеку §1.9/§5).
+function TopicStatusRow({
+  progress,
+  hasLessons,
+  children,
+}: {
+  progress: number;
+  hasLessons: boolean;
+  children: React.ReactNode;
+}) {
+  const done = hasLessons && progress >= 100;
+  const inProgress = hasLessons && progress > 0 && progress < 100;
+  const borderClass = done ? "border-l-primary" : inProgress ? "border-l-warning" : "border-l-transparent";
+  return (
+    <div
+      className={`flex items-center justify-between gap-3 rounded-xl border border-border border-l-4 bg-card shadow-card p-3 ${borderClass}`}
+    >
+      <div className="min-w-0 flex-1">{children}</div>
+      {done ? (
+        <span className="flex h-[17px] w-[17px] shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+          <Check size={11} strokeWidth={3} />
+        </span>
+      ) : inProgress ? (
+        <span className="h-[17px] w-[17px] shrink-0 rounded-full bg-warning" />
+      ) : hasLessons ? (
+        <span className="h-[17px] w-[17px] shrink-0 rounded-full border-[1.5px] border-locked" />
+      ) : null}
+    </div>
+  );
+}
 
 interface TopicSummary {
   id: string;
@@ -49,18 +82,16 @@ export default function GradeCurriculumPage({
                     ? 0
                     : Math.round((topic.lessonsCompleted / topic.lessonsTotal) * 100);
                 const content = (
-                  <div className="flex items-center justify-between rounded-xl border border-border bg-card p-3">
-                    <div className="flex-1">
-                      <p className={topic.hasLessons ? "font-medium" : "font-medium text-muted-foreground"}>
-                        {topic.title}
-                      </p>
-                      {topic.hasLessons ? (
-                        <Progress value={progress} className="mt-1.5 h-1.5" />
-                      ) : (
-                        <p className="mt-0.5 text-xs text-muted-foreground">{t.common.soon}</p>
-                      )}
-                    </div>
-                  </div>
+                  <TopicStatusRow progress={progress} hasLessons={topic.hasLessons}>
+                    <p className={topic.hasLessons ? "truncate font-medium" : "truncate font-medium text-muted-foreground"}>
+                      {topic.title}
+                    </p>
+                    {topic.hasLessons ? (
+                      <Progress value={progress} className="mt-1.5 h-1.5" />
+                    ) : (
+                      <p className="mt-0.5 text-xs text-muted-foreground">{t.common.soon}</p>
+                    )}
+                  </TopicStatusRow>
                 );
                 return topic.hasLessons ? (
                   <Link

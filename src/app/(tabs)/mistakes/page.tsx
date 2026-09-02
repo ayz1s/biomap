@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { Check } from "lucide-react";
 import { fetchJson } from "@/lib/api";
 import { ScreenHeader } from "@/components/layout/ScreenHeader";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -33,13 +34,19 @@ export default function MistakesPage() {
       </Tabs>
 
       {topics.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t.mistakes.empty}</p>
+        <div className="flex flex-col items-center gap-2 py-10 text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary-soft">
+            <Check size={26} className="text-primary-dark" strokeWidth={2.4} />
+          </div>
+          <p className="font-heading font-semibold text-foreground">{t.mistakes.emptyTitle}</p>
+          <p className="max-w-[80%] text-sm text-muted-foreground">{t.mistakes.emptyHint}</p>
+        </div>
       ) : (
         <div className="flex flex-col gap-3">
           {topics.map((topic) => {
             const percent = topic.totalAttempts === 0 ? 0 : Math.round((topic.wrongCount / topic.totalAttempts) * 100);
             return (
-              <div key={topic.topicName} className="flex items-center justify-between rounded-xl border border-border bg-card p-3">
+              <div key={topic.topicName} className="flex items-center justify-between rounded-xl border border-border bg-card shadow-card p-3">
                 <div>
                   <p className="font-medium">{topic.topicName}</p>
                   <p className="text-sm text-muted-foreground">

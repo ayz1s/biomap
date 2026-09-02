@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchJson } from "@/lib/api";
 import { ScreenHeader } from "@/components/layout/ScreenHeader";
 import { Card } from "@/components/ui/card";
-import { User } from "lucide-react";
+import { CheckCircle2, Flame, User } from "lucide-react";
 import { useT } from "@/lib/i18n";
 import { useAppStore } from "@/store/useAppStore";
 
@@ -46,7 +46,7 @@ export default function ProfilePage() {
       <ScreenHeader title={t.nav.profile} />
 
       <div className="flex items-center gap-3">
-        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-secondary text-secondary-foreground">
+        <div className="flex h-14 w-14 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-card">
           <User size={26} />
         </div>
         <div>
@@ -57,12 +57,12 @@ export default function ProfilePage() {
 
       <div className="grid grid-cols-2 gap-3">
         <Card className="items-center gap-1 p-4">
-          <span className="text-2xl">🔥</span>
+          <Flame size={22} className="text-warning" strokeWidth={2.2} />
           <p className="text-lg font-semibold">{user?.currentStreak ?? 0}</p>
           <p className="text-xs text-muted-foreground">{t.profile.streakDays}</p>
         </Card>
         <Card className="items-center gap-1 p-4">
-          <span className="text-2xl">✅</span>
+          <CheckCircle2 size={22} className="text-primary" strokeWidth={2.2} />
           <p className="text-lg font-semibold">{user?.completedLessons ?? 0}</p>
           <p className="text-xs text-muted-foreground">{t.profile.lessonsDone}</p>
         </Card>
@@ -74,7 +74,9 @@ export default function ProfilePage() {
           <button
             onClick={() => changeLanguage("RU")}
             className={`flex-1 rounded-lg py-2 text-sm font-medium ${
-              user?.language === "RU" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"
+              user?.language === "RU"
+                ? "bg-primary text-primary-foreground shadow-card"
+                : "border-[1.5px] border-border text-foreground"
             }`}
           >
             Русский
@@ -82,7 +84,9 @@ export default function ProfilePage() {
           <button
             onClick={() => changeLanguage("UZ")}
             className={`flex-1 rounded-lg py-2 text-sm font-medium ${
-              user?.language === "UZ" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"
+              user?.language === "UZ"
+                ? "bg-primary text-primary-foreground shadow-card"
+                : "border-[1.5px] border-border text-foreground"
             }`}
           >
             O'zbekcha

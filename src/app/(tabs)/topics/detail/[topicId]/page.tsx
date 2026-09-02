@@ -3,7 +3,7 @@
 import { use } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { CheckCircle2, Circle } from "lucide-react";
+import { Check } from "lucide-react";
 import { fetchJson } from "@/lib/api";
 import { ScreenHeader } from "@/components/layout/ScreenHeader";
 import { useT } from "@/lib/i18n";
@@ -52,12 +52,16 @@ export default function TopicDetailPage({
                 <Link
                   key={lesson.id}
                   href={`/lesson/${lesson.id}`}
-                  className="flex items-center gap-3 rounded-xl border border-border bg-card p-3"
+                  className={`flex items-center gap-3 rounded-xl border border-border border-l-4 bg-card shadow-card p-3 ${
+                    lesson.completed ? "border-l-primary" : "border-l-transparent"
+                  }`}
                 >
                   {lesson.completed ? (
-                    <CheckCircle2 size={20} className="shrink-0 text-primary-dark" />
+                    <span className="flex h-[17px] w-[17px] shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                      <Check size={11} strokeWidth={3} />
+                    </span>
                   ) : (
-                    <Circle size={20} className="shrink-0 text-locked" />
+                    <span className="h-[17px] w-[17px] shrink-0 rounded-full border-[1.5px] border-locked" />
                   )}
                   <span className="font-medium">{lesson.title}</span>
                 </Link>

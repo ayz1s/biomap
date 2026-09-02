@@ -19,8 +19,8 @@ export function BottomNav() {
 
   return (
     <nav
-      className="sticky bottom-0 z-20 mx-3.5 mb-4 flex items-center gap-1 rounded-3xl border border-border bg-card p-[7px] shadow-[0_14px_28px_-12px_rgba(20,20,10,0.22)]"
-      style={{ marginBottom: "calc(env(safe-area-inset-bottom) + 1rem)" }}
+      className="sticky bottom-0 z-20 mx-3.5 flex items-center gap-1 rounded-[22px] border border-border bg-card p-[7px] shadow-float"
+      style={{ marginBottom: "calc(env(safe-area-inset-bottom) + 14px)" }}
     >
       {items.map(({ href, label, icon: Icon }) => {
         const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -36,7 +36,7 @@ export function BottomNav() {
             }`}
           >
             <Icon size={22} strokeWidth={active ? 2.4 : 2} />
-            {active && <span className="truncate">{label}</span>}
+            {active && <span className="truncate font-heading font-semibold">{label}</span>}
           </Link>
         );
       })}

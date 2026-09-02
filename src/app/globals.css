@@ -25,6 +25,7 @@
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
   --color-muted: var(--muted);
+  --color-ink-soft: var(--ink-soft);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
@@ -35,6 +36,8 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --shadow-card: var(--shadow-card-value);
+  --shadow-float: var(--shadow-float-value);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -44,14 +47,15 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* BioMap: «Карта» — карта знаний, а не аптека и не лесная тропа. Холодная
-   почти-белая бумага, живой хлорофилловый зелёный для прогресса/действий,
-   отдельный фиолетовый — только для сквозной связи понятий между классами
-   (никогда не смешивать со статусом прохождения). Никакого сплошного тёмного
-   хрома сверху/снизу — шапка и нижняя навигация плавают отдельными
-   элементами над контентом (см. ScreenHeader/BottomNav). Без тёмной темы. */
+/* BioMap: «Карта» v2 — фон СПЕЦИАЛЬНО не белый и не близкий к белому (тёплый
+   серо-зелёный), чтобы белые карточки реально выделялись, а не сливались со
+   страницей. Живой хлорофилловый зелёный — прогресс/действия; отдельный
+   фиолетовый — только бейдж «сквозное понятие», никогда статус прохождения.
+   Никакого сплошного тёмного хрома сверху/снизу — шапка и нижняя навигация
+   плавают отдельными элементами над контентом (см. ScreenHeader/BottomNav).
+   Без тёмной темы. */
 :root {
-  --background: #fafaf9;
+  --background: #eef0e7;
   --foreground: #1b1d1a;
   --card: #ffffff;
   --card-foreground: #1b1d1a;
@@ -63,13 +67,14 @@
   --primary-dark: #157f46;
   --primary-soft: #e2f5ea;
 
-  --secondary: #efefea;
+  --secondary: #e7e8dc;
   --secondary-foreground: #1b1d1a;
 
-  --muted: #efefea;
-  --muted-foreground: #8a8c82;
+  --muted: #e7e8dc;
+  --muted-foreground: #84867a;
+  --ink-soft: #54564f;
 
-  --accent: #efefea;
+  --accent: #e7e8dc;
   --accent-foreground: #1b1d1a;
 
   /* Маршрут: сквозное понятие встречается в N классах — единственная роль
@@ -86,13 +91,16 @@
 
   --success: #1fa35c;
 
-  --locked: #a2a499;
-  --locked-soft: #efefea;
+  --locked: #9a9c8f;
+  --locked-soft: #e7e8dc;
 
-  --border: #e7e7e2;
-  --input: #e7e7e2;
+  --border: #d8d9cb;
+  --input: #d8d9cb;
   --ring: #1fa35c;
   --radius: 0.8rem;
+
+  --shadow-card-value: 0 1px 2px rgba(28, 30, 18, 0.05), 0 8px 18px -12px rgba(28, 30, 18, 0.14);
+  --shadow-float-value: 0 14px 28px -12px rgba(20, 20, 10, 0.24);
 }
 
 @layer base {

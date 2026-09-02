@@ -124,11 +124,11 @@ export default function TestPage({ params }: { params: Promise<{ testId: string 
         <button
           onClick={() => router.back()}
           aria-label={t.common.back}
-          className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-xl border border-border bg-card text-foreground shadow-[0_6px_14px_-6px_rgba(20,20,10,0.16)]"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[11px] border border-border bg-card text-foreground shadow-card"
         >
-          <ArrowLeft size={19} />
+          <ArrowLeft size={18} />
         </button>
-        <h1 className="flex-1 truncate font-heading text-[16.5px] font-semibold tracking-tight text-foreground">{data.lesson.title}</h1>
+        <h1 className="flex-1 truncate font-heading text-[15.5px] font-semibold tracking-tight text-foreground">{data.lesson.title}</h1>
       </div>
 
       <div>
@@ -138,7 +138,7 @@ export default function TestPage({ params }: { params: Promise<{ testId: string 
 
       {mode === "question" && (
         <>
-          <p className="text-lg font-medium">{question.text}</p>
+          <p className="font-serif text-lg font-bold">{question.text}</p>
           {question.type === "MULTIPLE_CHOICE" && (
             <p className="text-sm text-muted-foreground">{t.test.selectAll}</p>
           )}
@@ -150,7 +150,7 @@ export default function TestPage({ params }: { params: Promise<{ testId: string 
                   key={opt.id}
                   onClick={() => toggleOption(opt.id)}
                   className={`flex items-center gap-3 rounded-xl border-[1.5px] px-4 py-3 text-left ${
-                    isSelected ? "border-primary bg-primary-soft" : "border-border bg-card"
+                    isSelected ? "border-primary bg-primary-soft shadow-card" : "border-border bg-card"
                   }`}
                 >
                   <span
@@ -172,7 +172,11 @@ export default function TestPage({ params }: { params: Promise<{ testId: string 
             <button
               onClick={submit}
               disabled={selected.length === 0}
-              className="flex h-11 items-center rounded-lg bg-primary px-6 font-extrabold text-primary-foreground disabled:opacity-40"
+              className={`flex h-11 items-center rounded-lg px-6 font-extrabold ${
+                selected.length === 0
+                  ? "bg-locked-soft text-locked"
+                  : "bg-primary text-primary-foreground"
+              }`}
             >
               {t.test.answer}
             </button>

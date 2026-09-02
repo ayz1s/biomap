@@ -21,15 +21,15 @@ export function ScreenHeader({
       <button
         onClick={() => router.back()}
         aria-label={t.common.back}
-        className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-xl border border-border bg-card text-foreground shadow-[0_6px_14px_-6px_rgba(20,20,10,0.16)]"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[11px] border border-border bg-card text-foreground shadow-card"
       >
-        <ArrowLeft size={19} />
+        <ArrowLeft size={18} />
       </button>
       <div className="min-w-0 flex-1">
-        <h1 className="truncate font-heading text-[16.5px] leading-tight font-semibold tracking-tight text-foreground">
+        <h1 className="truncate font-heading text-[15.5px] leading-tight font-semibold tracking-tight text-foreground">
           {title}
         </h1>
-        {subtitle && <p className="mt-0.5 truncate text-xs text-muted-foreground">{subtitle}</p>}
+        {subtitle && <p className="mt-0.5 truncate text-xs text-muted">{subtitle}</p>}
       </div>
       {rightSlot}
     </header>
