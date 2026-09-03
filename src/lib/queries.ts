@@ -2,13 +2,56 @@ import { prisma } from "@/lib/prisma";
 import { nextDueDate, nextInterval } from "@/lib/spaced-repetition";
 import type { Language } from "@prisma/client";
 
-async function getCompletedLessonIds(userId: string | null) {
-  if (!userId) return new Set<string>();
-  const rows = await prisma.userLessonProgress.findMany({
-    where: { userId, completed: true },
-    select: { lessonId: true },
-  });
-  return new Set(rows.map((p) => p.lessonId));
+// Процент прохождения урока = 50% за долистанные карточки + 50% за верно
+// решённые (хотя бы одной попыткой) вопросы теста; без вопросов — 100% веса
+// на карточки. Возвращает дробные "единицы урока" (0..1 на урок), а не
+// проценты — так их можно суммировать по темам/классам/разделам и получить
+// корректный агрегированный прогресс тем же кодом, что считал целые уроки.
+async function getLessonUnitsMap(userId: string | null, lessonIds: string[]) {
+  const map = new Map<string, number>();
+  if (!userId || lessonIds.length === 0) return map;
+
+  const [lessons, progresses, correctResults] = await Promise.all([
+    prisma.lesson.findMany({
+      where: { id: { in: lessonIds } },
+      select: {
+        id: true,
+        cards: { where: { anchorCardId: null }, select: { id: true } },
+        questions: { select: { id: true } },
+      },
+    }),
+    prisma.userLessonProgress.findMany({
+      where: { userId, lessonId: { in: lessonIds } },
+      select: { lessonId: true, currentCardIndex: true },
+    }),
+    prisma.userQuestionResult.findMany({
+      where: { userId, correct: true, question: { lessonId: { in: lessonIds } } },
+      select: { question: { select: { lessonId: true } } },
+    }),
+  ]);
+
+  const cardIndexByLesson = new Map(progresses.map((p) => [p.lessonId, p.currentCardIndex]));
+  const correctCountByLesson = new Map<string, number>();
+  for (const r of correctResults) {
+    const lessonId = r.question.lessonId;
+    correctCountByLesson.set(lessonId, (correctCountByLesson.get(lessonId) ?? 0) + 1);
+  }
+
+  for (const lesson of lessons) {
+    const totalCards = lesson.cards.length;
+    const totalQuestions = lesson.questions.length;
+    const cardsRead = Math.min(cardIndexByLesson.get(lesson.id) ?? 0, totalCards);
+    const cardsFraction = totalCards === 0 ? 1 : cardsRead / totalCards;
+    const correctCount = Math.min(correctCountByLesson.get(lesson.id) ?? 0, totalQuestions);
+    const questionsFraction = totalQuestions === 0 ? 1 : correctCount / totalQuestions;
+    const units = totalQuestions === 0 ? cardsFraction : cardsFraction * 0.5 + questionsFraction * 0.5;
+    map.set(lesson.id, units);
+  }
+  return map;
+}
+
+function sumUnits(unitsMap: Map<string, number>, lessonIds: string[]) {
+  return lessonIds.reduce((sum, id) => sum + (unitsMap.get(id) ?? 0), 0);
 }
 
 // Вкладка "По темам" — лендинг: список предметных разделов со сквозным
@@ -24,12 +67,13 @@ export async function getCategoriesWithProgress(userId: string | null, language:
     },
   });
 
-  const completedLessonIds = await getCompletedLessonIds(userId);
+  const allLessonIds = categories.flatMap((c) => c.topics.flatMap((t) => t.lessons.map((l) => l.id)));
+  const unitsMap = await getLessonUnitsMap(userId, allLessonIds);
 
   return categories.map((category) => {
     const lessons = category.topics.flatMap((t) => t.lessons);
     const total = lessons.length;
-    const completed = lessons.filter((l) => completedLessonIds.has(l.id)).length;
+    const completed = sumUnits(unitsMap, lessons.map((l) => l.id));
 
     return {
       id: category.id,
@@ -45,28 +89,30 @@ export async function getCategoriesWithProgress(userId: string | null, language:
 
 // Раздел вкладки "По темам" — темы категории из всех классов, сгруппированные по классу.
 export async function getCategoryDetail(categoryId: string, userId: string | null) {
-  const [category, completedLessonIds] = await Promise.all([
-    prisma.topicCategory.findUnique({
-      where: { id: categoryId },
-      include: {
-        topics: {
-          orderBy: [{ gradeId: "asc" }, { order: "asc" }],
-          include: {
-            grade: true,
-            lessons: { where: { published: true }, select: { id: true } },
-          },
+  const category = await prisma.topicCategory.findUnique({
+    where: { id: categoryId },
+    include: {
+      topics: {
+        orderBy: [{ gradeId: "asc" }, { order: "asc" }],
+        include: {
+          grade: true,
+          lessons: { where: { published: true }, select: { id: true } },
         },
       },
-    }),
-    getCompletedLessonIds(userId),
-  ]);
+    },
+  });
   if (!category) return null;
+
+  const unitsMap = await getLessonUnitsMap(
+    userId,
+    category.topics.flatMap((t) => t.lessons.map((l) => l.id)),
+  );
 
   const categoryTopics = category.topics;
 
   const byGrade = new Map<number, { gradeNumber: number; topics: ReturnType<typeof toTopicSummary>[] }>();
   function toTopicSummary(topic: (typeof categoryTopics)[number]) {
-    const completed = topic.lessons.filter((l) => completedLessonIds.has(l.id)).length;
+    const completed = sumUnits(unitsMap, topic.lessons.map((l) => l.id));
     return {
       id: topic.id,
       title: topic.title,
@@ -97,19 +143,21 @@ export async function getCategoryDetail(categoryId: string, userId: string | nul
 
 // Вкладка "По классам" — главы и темы одного класса, в порядке учебника.
 export async function getGradeCurriculum(gradeNumber: number, userId: string | null, language: Language) {
-  const [grade, completedLessonIds] = await Promise.all([
-    prisma.grade.findUnique({
-      where: { number_language: { number: gradeNumber, language } },
-      include: {
-        topics: {
-          orderBy: { order: "asc" },
-          include: { lessons: { where: { published: true }, select: { id: true } } },
-        },
+  const grade = await prisma.grade.findUnique({
+    where: { number_language: { number: gradeNumber, language } },
+    include: {
+      topics: {
+        orderBy: { order: "asc" },
+        include: { lessons: { where: { published: true }, select: { id: true } } },
       },
-    }),
-    getCompletedLessonIds(userId),
-  ]);
+    },
+  });
   if (!grade) return null;
+
+  const unitsMap = await getLessonUnitsMap(
+    userId,
+    grade.topics.flatMap((t) => t.lessons.map((l) => l.id)),
+  );
 
   const gradeTopics = grade.topics;
 
@@ -118,7 +166,7 @@ export async function getGradeCurriculum(gradeNumber: number, userId: string | n
     { chapterOrder: number; chapterTitle: string; topics: ReturnType<typeof toTopicSummary>[] }
   >();
   function toTopicSummary(topic: (typeof gradeTopics)[number]) {
-    const completed = topic.lessons.filter((l) => completedLessonIds.has(l.id)).length;
+    const completed = sumUnits(unitsMap, topic.lessons.map((l) => l.id));
     return {
       id: topic.id,
       title: topic.title,
@@ -145,19 +193,18 @@ export async function getGradeCurriculum(gradeNumber: number, userId: string | n
 // Экран одной темы — контекст (класс/глава/раздел), список уроков (не только
 // первый — темы вроде "§10" могут иметь несколько уроков) и связи с другими темами.
 export async function getTopicDetail(topicId: string, userId: string | null) {
-  const [topic, completedLessonIds] = await Promise.all([
-    prisma.topic.findUnique({
-      where: { id: topicId },
-      include: {
-        grade: true,
-        category: true,
-        lessons: { where: { published: true }, orderBy: { order: "asc" } },
-        connectionsFrom: { include: { toTopic: true } },
-      },
-    }),
-    getCompletedLessonIds(userId),
-  ]);
+  const topic = await prisma.topic.findUnique({
+    where: { id: topicId },
+    include: {
+      grade: true,
+      category: true,
+      lessons: { where: { published: true }, orderBy: { order: "asc" } },
+      connectionsFrom: { include: { toTopic: true } },
+    },
+  });
   if (!topic) return null;
+
+  const unitsMap = await getLessonUnitsMap(userId, topic.lessons.map((l) => l.id));
 
   return {
     id: topic.id,
@@ -168,7 +215,7 @@ export async function getTopicDetail(topicId: string, userId: string | null) {
     lessons: topic.lessons.map((l) => ({
       id: l.id,
       title: l.title,
-      completed: completedLessonIds.has(l.id),
+      completed: (unitsMap.get(l.id) ?? 0) >= 1,
     })),
     connections: topic.connectionsFrom.map((c) => ({
       toTopicName: c.toTopic.title,
@@ -280,31 +327,76 @@ export async function getLessonWithProgress(lessonId: string, userId: string | n
   return { lesson, progress, concepts };
 }
 
-export async function upsertLessonProgress(
-  userId: string,
-  lessonId: string,
-  data: { currentCardIndex?: number; completed?: boolean },
-) {
-  return prisma.userLessonProgress.upsert({
+// Урок засчитан целиком, только когда долистаны все карточки И верно решены
+// (хотя бы одной попыткой) все вопросы теста — раньше completed выставлялся
+// клиентом сразу за долистывание карточек, до всякого теста. Дергается и
+// после сохранения currentCardIndex, и после каждого верного ответа —
+// completed всегда пересчитывается из сырых фактов, не выставляется напрямую.
+async function recomputeLessonCompletion(userId: string, lessonId: string) {
+  const [existing, lesson] = await Promise.all([
+    prisma.userLessonProgress.findUnique({ where: { userId_lessonId: { userId, lessonId } } }),
+    prisma.lesson.findUnique({
+      where: { id: lessonId },
+      select: {
+        cards: { where: { anchorCardId: null }, select: { id: true } },
+        questions: { select: { id: true } },
+      },
+    }),
+  ]);
+  if (!existing || !lesson) return existing;
+
+  const totalCards = lesson.cards.length;
+  const totalQuestions = lesson.questions.length;
+  const cardsDone = totalCards === 0 || existing.currentCardIndex >= totalCards;
+
+  const correctCount =
+    totalQuestions === 0
+      ? 0
+      : await prisma.userQuestionResult.count({
+          where: { userId, correct: true, question: { lessonId } },
+        });
+  const questionsDone = totalQuestions === 0 || correctCount >= totalQuestions;
+
+  const completed = cardsDone && questionsDone;
+  if (completed === existing.completed) return existing;
+
+  return prisma.userLessonProgress.update({
     where: { userId_lessonId: { userId, lessonId } },
-    update: { ...data, completedAt: data.completed ? new Date() : undefined },
-    create: {
-      userId,
-      lessonId,
-      currentCardIndex: data.currentCardIndex ?? 0,
-      completed: data.completed ?? false,
-      completedAt: data.completed ? new Date() : undefined,
-    },
+    data: { completed, completedAt: completed ? new Date() : null },
   });
 }
 
-export async function recordAnswer(userId: string, questionId: string, isCorrect: boolean) {
-  if (isCorrect) return;
-  await prisma.userMistake.upsert({
-    where: { userId_questionId: { userId, questionId } },
-    update: { timesWrong: { increment: 1 }, lastWrongAt: new Date() },
-    create: { userId, questionId, timesWrong: 1 },
+export async function upsertLessonProgress(
+  userId: string,
+  lessonId: string,
+  data: { currentCardIndex?: number },
+) {
+  await prisma.userLessonProgress.upsert({
+    where: { userId_lessonId: { userId, lessonId } },
+    update: { currentCardIndex: data.currentCardIndex },
+    create: { userId, lessonId, currentCardIndex: data.currentCardIndex ?? 0 },
   });
+  return recomputeLessonCompletion(userId, lessonId);
+}
+
+export async function recordAnswer(userId: string, questionId: string, isCorrect: boolean) {
+  await prisma.userQuestionResult.upsert({
+    where: { userId_questionId: { userId, questionId } },
+    update: { correct: isCorrect },
+    create: { userId, questionId, correct: isCorrect },
+  });
+
+  if (!isCorrect) {
+    await prisma.userMistake.upsert({
+      where: { userId_questionId: { userId, questionId } },
+      update: { timesWrong: { increment: 1 }, lastWrongAt: new Date() },
+      create: { userId, questionId, timesWrong: 1 },
+    });
+    return;
+  }
+
+  const question = await prisma.question.findUnique({ where: { id: questionId }, select: { lessonId: true } });
+  if (question) await recomputeLessonCompletion(userId, question.lessonId);
 }
 
 export async function completeTestAndScheduleRepetition(userId: string, lessonId: string) {

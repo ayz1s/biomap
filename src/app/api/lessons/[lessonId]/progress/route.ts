@@ -10,7 +10,7 @@ export async function POST(
   const userId = await getCurrentUserId();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = (await req.json()) as { currentCardIndex?: number; completed?: boolean };
+  const body = (await req.json()) as { currentCardIndex?: number };
   const progress = await upsertLessonProgress(userId, lessonId, body);
   return NextResponse.json({ progress });
 }

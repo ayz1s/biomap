@@ -394,7 +394,7 @@ function CardsTab({
   const isLast = safeIndex === mainCards.length - 1;
   const anchoredScheme = anchoredSchemeByCardId.get(card.id) ?? null;
 
-  function saveProgress(next: { currentCardIndex?: number; completed?: boolean }) {
+  function saveProgress(next: { currentCardIndex?: number }) {
     fetchJson(`/api/lessons/${lessonId}/progress`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -404,7 +404,11 @@ function CardsTab({
 
   function goNext() {
     if (isLast) {
-      saveProgress({ completed: true });
+      // Долистаны все карточки — это ещё не "пройден урок", а только
+      // половина: currentCardIndex = mainCards.length фиксирует "все
+      // карточки прочитаны", completed пересчитается на сервере из этого +
+      // результатов теста (recomputeLessonCompletion).
+      saveProgress({ currentCardIndex: mainCards.length });
       router.push(`/test/${lessonId}`);
       return;
     }

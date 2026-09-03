@@ -71,6 +71,7 @@ model User {
 
   lessonProgress  UserLessonProgress[]
   mistakes        UserMistake[]
+  questionResults UserQuestionResult[]
   repetitionItems RepetitionItem[]
   streak          UserStreak?
 }
@@ -250,6 +251,7 @@ model Question {
   options  QuestionOption[]
   hints    Hint[]
   mistakes UserMistake[]
+  results  UserQuestionResult[]
 }
 
 model QuestionOption {
@@ -269,6 +271,9 @@ model Hint {
   text       String
 }
 
+// completed выставляется только когда пройдены и карточки, и тест (см.
+// computeLessonCompletion в queries.ts) — раньше выставлялось за одно только
+// долистывание карточек, из-за чего урок засчитывался как 100% ещё до теста.
 model UserLessonProgress {
   id               String    @id @default(cuid())
   userId           String
@@ -291,6 +296,21 @@ model UserMistake {
   question    Question @relation(fields: [questionId], references: [id])
   timesWrong  Int      @default(0)
   lastWrongAt DateTime @default(now())
+
+  @@unique([userId, questionId])
+}
+
+// Решил ли пользователь вопрос верно хотя бы одной последней попыткой —
+// нужно для расчёта процента прохождения урока (доля верно решённых
+// вопросов теста), в отличие от UserMistake, который копит только ошибки.
+model UserQuestionResult {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id])
+  correct    Boolean
+  updatedAt  DateTime @updatedAt
 
   @@unique([userId, questionId])
 }
